@@ -1,3 +1,1 @@
-function generateAuthToken (user) {
-    return user.email;
-}
+export const generateAuthToken = (user) => { return user.email; }

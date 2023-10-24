@@ -1,7 +1,7 @@
 import express from 'express';
 import { graphqlHTTP } from 'express-graphql';
 import { createHandler } from 'graphql-http/lib/use/express';
-import { AddUser, FindUser, QueryUsers, FindUsersByField } from './users.js';
+import { AddUser, FindUser, QueryUsers, FindUsersByField, Login } from './users.js';
 import {
     GraphQLSchema,
     GraphQLObjectType,
@@ -67,6 +67,15 @@ const RootMutationType = new GraphQLObjectType({
                 password: { type: GraphQLNonNull(GraphQLString) }
             },
             resolve: (parent, args) => AddUser(args.email, args.username, args.password)
+        },
+        login: {
+            type: GraphQLString, // You can use a String for returning a token or a session
+            description: 'User login',
+            args: {
+                emailOrUsername: { type: GraphQLNonNull(GraphQLString) },
+                password: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => Login(args.emailOrUsername, args.password)
         }
     })
 });
