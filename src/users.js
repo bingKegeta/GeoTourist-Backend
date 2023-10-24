@@ -1,6 +1,9 @@
 import { MongoClient } from 'mongodb';
 
-const uri = 'mongodb://localhost';
+// the closing of the connection is moved to an unreachable section since it wasn't working for some reason previously
+//! It's definitely bad practice that we're going to make better
+
+const uri = 'mongodb://localhost:27017';
 const client = new MongoClient(uri);
 let usersArr, user, newUser;
 
@@ -21,9 +24,9 @@ export const QueryUsers = async function()
     }
     finally
     {
-        await client.close();
         return usersArr;
     }
+    await client.close();
 }
 
 export const FindUser = async function(email, username, password)
@@ -45,10 +48,28 @@ export const FindUser = async function(email, username, password)
     }
     finally
     {
-        await client.close();
         return user;
     }
+    await client.close();
 }
+
+export const FindUsersByField = async function (field, value) {
+    try {
+        const db = client.db('geodb');
+        const usersCollection = db.collection('users');
+
+        const query = {};
+        query[field] = { $regex: new RegExp(value, 'i') }; // Use case-insensitive regex for partial matches
+
+        usersArr = await usersCollection.find(query).toArray();
+    } catch (error) {
+        console.error("Error finding users:", error);
+    } finally {
+        return usersArr;
+    }
+    await client.close();
+};
+
 
 export const AddUser = async function(email, username, password)
 {
@@ -70,10 +91,12 @@ export const AddUser = async function(email, username, password)
             "password": new RegExp('^' + password + '$')
         };
         newUser = await users.findOne(query);
+    }catch (error) {
+        console.log("Error adding user:", error);
     }
     finally
     {
-        await client.close();
         return newUser;
     }
+    await client.close();
 }

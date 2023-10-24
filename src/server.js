@@ -1,14 +1,16 @@
 import express from 'express';
 import { graphqlHTTP } from 'express-graphql';
 import { createHandler } from 'graphql-http/lib/use/express';
-import { AddUser, FindUser, QueryUsers } from './users.js';
+import { AddUser, FindUser, QueryUsers, FindUsersByField } from './users.js';
 import {
     GraphQLSchema,
     GraphQLObjectType,
     GraphQLString,
     GraphQLNonNull,
-    GraphQLList
+    GraphQLList,
+    graphql
 } from 'graphql';
+
 const app = express();
 
 const UserType = new GraphQLObjectType({
@@ -39,6 +41,15 @@ const RootQueryType = new GraphQLObjectType({
             type: new GraphQLList(UserType),
             description: 'List of All Users',
             resolve: () => QueryUsers()
+        },
+        userByField: {
+            type: new GraphQLList(UserType),
+            description: 'Finds users with the specified fields',
+            args: {
+                field: { type: GraphQLNonNull(GraphQLString) },
+                value: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => FindUsersByField(args.field, args.value)
         }
     })
 });
@@ -66,8 +77,9 @@ const schema = new GraphQLSchema({
 });
 
 // graphql-http
-app.use('/graphql', createHandler({
-    schema
+app.use('/api', graphqlHTTP({
+    schema,
+    graphiql: true
 }));
 
 // express-graphql, deprecated
