@@ -108,7 +108,7 @@ export const Login = async function (emailOrUsername, password) {
         const usersCollection = db.collection('users');
 
         // Find the user by email or username
-        const user = await usersCollection.findOne({
+        user = await usersCollection.findOne({
             $or: [
                 { email: emailOrUsername },
                 { username: emailOrUsername }
