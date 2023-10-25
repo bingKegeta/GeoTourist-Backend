@@ -60,7 +60,7 @@ export const FindUsersByField = async function (field, value) {
         const usersCollection = db.collection('users');
 
         const query = {};
-        query[field] = { $regex: new RegExp(value, 'i') }; // Use case-insensitive regex for partial matches
+        query[field] = new RegExp(value, 'i'); // Use case-insensitive regex for partial matches
 
         usersArr = await usersCollection.find(query).toArray();
     } catch (error) {
