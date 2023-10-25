@@ -1,14 +1,16 @@
 import express from 'express';
 import { graphqlHTTP } from 'express-graphql';
 import { createHandler } from 'graphql-http/lib/use/express';
-import { AddUser, FindUser, QueryUsers } from './users.js';
+import { AddUser, FindUser, QueryUsers, FindUsersByField, Login } from './users.js';
 import {
     GraphQLSchema,
     GraphQLObjectType,
     GraphQLString,
     GraphQLNonNull,
-    GraphQLList
+    GraphQLList,
+    graphql
 } from 'graphql';
+
 const app = express();
 
 const UserType = new GraphQLObjectType({
@@ -39,6 +41,15 @@ const RootQueryType = new GraphQLObjectType({
             type: new GraphQLList(UserType),
             description: 'List of All Users',
             resolve: () => QueryUsers()
+        },
+        userByField: {
+            type: new GraphQLList(UserType),
+            description: 'Finds users with the specified fields',
+            args: {
+                field: { type: GraphQLNonNull(GraphQLString) },
+                value: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => FindUsersByField(args.field, args.value)
         }
     })
 });
@@ -48,7 +59,7 @@ const RootMutationType = new GraphQLObjectType({
     description: 'Root Mutation',
     fields: () => ({
         addUser: {
-            type: UserType,
+            type: GraphQLString,
             description: 'Add a user',
             args: {
                 email: { type: GraphQLNonNull(GraphQLString) },
@@ -56,6 +67,15 @@ const RootMutationType = new GraphQLObjectType({
                 password: { type: GraphQLNonNull(GraphQLString) }
             },
             resolve: (parent, args) => AddUser(args.email, args.username, args.password)
+        },
+        login: {
+            type: GraphQLString, // You can use a String for returning a token or a session
+            description: 'User login',
+            args: {
+                emailOrUsername: { type: GraphQLNonNull(GraphQLString) },
+                password: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => Login(args.emailOrUsername, args.password)
         }
     })
 });
@@ -66,8 +86,9 @@ const schema = new GraphQLSchema({
 });
 
 // graphql-http
-app.use('/graphql', createHandler({
-    schema
+app.use('/api', graphqlHTTP({
+    schema,
+    graphiql: true
 }));
 
 // express-graphql, deprecated
