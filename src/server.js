@@ -59,7 +59,7 @@ const RootMutationType = new GraphQLObjectType({
     description: 'Root Mutation',
     fields: () => ({
         addUser: {
-            type: UserType,
+            type: GraphQLString,
             description: 'Add a user',
             args: {
                 email: { type: GraphQLNonNull(GraphQLString) },

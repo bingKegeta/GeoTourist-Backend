@@ -84,20 +84,26 @@ export const AddUser = async function(email, username, password)
             "username": username,
             "password": password
         };
-        await users.insertOne(doc);
 
-        const query = {
-            "email": new RegExp('^' + email + '$'),
-            "username": new RegExp('^' + username + '$'),
-            "password": new RegExp('^' + password + '$')
-        };
-        newUser = await users.findOne(query);
+        const checkUser = await users.findOne(doc);
+        if (checkUser) {
+            throw new Error('User already exists');
+        } else {
+            await users.insertOne(doc);
+    
+            const query = {
+                "email": new RegExp('^' + email + '$'),
+                "username": new RegExp('^' + username + '$'),
+                "password": new RegExp('^' + password + '$')
+            };
+            newUser = await users.findOne(query);
+        }
     }catch (error) {
         console.log("Error adding user:", error);
     }
     finally
     {
-        return newUser;
+        return generateAuthToken(newUser);
     }
     await client.close();
 }
