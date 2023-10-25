@@ -29,7 +29,7 @@ const RootQueryType = new GraphQLObjectType({
     fields: () => ({
         user: {
             type: UserType,
-            description: 'A single specific user',
+            description: 'Returns a single specific user depending on their details',
             args: {
                 email: { type: GraphQLNonNull(GraphQLString) },
                 username: { type: GraphQLNonNull(GraphQLString) },
@@ -39,12 +39,12 @@ const RootQueryType = new GraphQLObjectType({
         },
         users: {
             type: new GraphQLList(UserType),
-            description: 'List of All Users',
+            description: 'Returns a list of all the users',
             resolve: () => QueryUsers()
         },
         userByField: {
             type: new GraphQLList(UserType),
-            description: 'Finds users with the specified fields',
+            description: 'Returns users matching a partial search from a specific field',
             args: {
                 field: { type: GraphQLNonNull(GraphQLString) },
                 value: { type: GraphQLNonNull(GraphQLString) }
@@ -60,7 +60,7 @@ const RootMutationType = new GraphQLObjectType({
     fields: () => ({
         addUser: {
             type: GraphQLString,
-            description: 'Add a user',
+            description: 'Add a new non existing user to the users collection of the db',
             args: {
                 email: { type: GraphQLNonNull(GraphQLString) },
                 username: { type: GraphQLNonNull(GraphQLString) },
@@ -70,7 +70,7 @@ const RootMutationType = new GraphQLObjectType({
         },
         login: {
             type: GraphQLString, // You can use a String for returning a token or a session
-            description: 'User login',
+            description: 'Authenticate User Login and return the Object ID on sucessful login',
             args: {
                 emailOrUsername: { type: GraphQLNonNull(GraphQLString) },
                 password: { type: GraphQLNonNull(GraphQLString) }
