@@ -1,6 +1,5 @@
 import express from 'express';
 import { graphqlHTTP } from 'express-graphql';
-import { createHandler } from 'graphql-http/lib/use/express';
 import { AddUser, FindUser, QueryUsers, FindUsersByField, Login } from './users.js';
 import {
     GraphQLSchema,
@@ -8,8 +7,10 @@ import {
     GraphQLString,
     GraphQLNonNull,
     GraphQLList,
-    graphql
+    graphql,
+    GraphQLFloat
 } from 'graphql';
+import { addLocation } from './locations.js';
 
 const app = express();
 
@@ -76,6 +77,17 @@ const RootMutationType = new GraphQLObjectType({
                 password: { type: GraphQLNonNull(GraphQLString) }
             },
             resolve: (parent, args) => Login(args.emailOrUsername, args.password)
+        },
+        addLocation: {
+            type: GraphQLString,
+            description: 'Add a new location (won\'t accept any location that is in a 5km radius from an already existing location)',
+            args: {
+                user_id: { type: GraphQLNonNull(GraphQLString) },
+                name: { type: GraphQLNonNull(GraphQLString) },
+                latitude: { type: GraphQLNonNull(GraphQLFloat) },
+                longitude: { type: GraphQLNonNull(GraphQLFloat) },
+            },
+            resolve: (parent, args) => addLocation(args.user_id, args.name, args.latitude, args.longitude)
         }
     })
 });
@@ -85,16 +97,9 @@ const schema = new GraphQLSchema({
     mutation: RootMutationType
 });
 
-// graphql-http
 app.use('/api', graphqlHTTP({
     schema,
     graphiql: true
 }));
-
-// express-graphql, deprecated
-// app.use('/graphql', graphqlHTTP({
-//     schema: schema,
-//     graphiql: true
-// }));
 
 app.listen(5000, () => console.log('Server Running'));

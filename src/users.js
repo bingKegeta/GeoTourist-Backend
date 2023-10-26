@@ -1,10 +1,11 @@
 import { MongoClient } from 'mongodb';
 import { generateAuthToken } from './helper.js';
+import './loadenv.js';
 
 // the closing of the connection is moved to an unreachable section since it wasn't working for some reason previously
 //! It's definitely bad practice that we're going to make better
 
-const uri = 'mongodb://localhost:27017';
+const uri = process.env.uri;
 const client = new MongoClient(uri);
 let usersArr, user, newUser;
 
