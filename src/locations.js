@@ -60,6 +60,36 @@ export const addLocation = async function (user_id, name, latitude, longitude) {
         console.error("Error adding location", error);
         return 'Failure!';
     } finally {
-        await client.close();
+        // await client.close();
     }
 };
+
+export const QueryLocations = async (user_id) => {
+    try {
+        const db = client.db('geodb');
+        const locations = db.collection('locations');
+
+        const query = await locations.find({user_id}).toArray();
+
+        //* Mapping the data to the specific graphQL shape since mongodb points don't convert to
+        //* a graphQL Object
+        locationsArr = query.map(item => {
+            return {
+              user_id: item.user_id,
+              name: item.name,
+              location: {
+                latitude: item.location.coordinates[1], // Latitude at 1
+                longitude: item.location.coordinates[0] // Longitude at 0
+              },
+              elevation: item.elevation,
+              average_temperature: item.avg_temp,
+              kopen_climate: item.koppen,
+              zone_description: item['climate zone']
+            };
+        });
+
+        return locationsArr;
+    } catch (error) {
+        console.error(error);
+    }
+}
