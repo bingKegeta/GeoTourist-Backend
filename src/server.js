@@ -9,7 +9,7 @@ import {
     GraphQLList,
     GraphQLFloat,
 } from 'graphql';
-import { QueryLocations, addLocation } from './locations.js';
+import { QueryLocations, QueryLocationsByName, addLocation } from './locations.js';
 import { UserType, LocationType } from './graphQLObjects.js';
 
 const app = express();
@@ -49,6 +49,15 @@ const RootQueryType = new GraphQLObjectType({
                 user_id: { type: GraphQLNonNull(GraphQLString) }
             },
             resolve: (parent, args) => QueryLocations(args.user_id)
+        },
+        locationsByName: {
+            type: new GraphQLList(LocationType),
+            description: 'Returns a list of all locations by a user that contains the arg in its name',
+            args: {
+                user_id: { type: GraphQLNonNull(GraphQLString) },
+                name: { type: GraphQLString }
+            },
+            resolve: (parent, args) => QueryLocationsByName(args.user_id, args.name)
         }
     })
 });
