@@ -92,4 +92,34 @@ export const QueryLocations = async (user_id) => {
     } catch (error) {
         console.error(error);
     }
+};
+
+export const QueryLocationsByName = async (user_id, name) => {
+    try {
+        const db = client.db('geodb');
+        const locations = db.collection('locations');
+
+        const query = {};
+        query['name'] = new RegExp(name, 'i');
+
+        const mongo_query = await locations.find({$and: [{user_id: user_id}, query]}).toArray();
+        locationsArr = mongo_query.map(item => {
+            return {
+              user_id: item.user_id,
+              name: item.name,
+              location: {
+                latitude: item.location.coordinates[1], // Latitude at 1
+                longitude: item.location.coordinates[0] // Longitude at 0
+              },
+              elevation: item.elevation,
+              average_temperature: item.avg_temp,
+              kopen_climate: item.koppen,
+              zone_description: item['climate zone']
+            };
+        });
+    } catch (error) {
+        console.error(error);
+    } finally {
+        return locationsArr;
+    }
 }
