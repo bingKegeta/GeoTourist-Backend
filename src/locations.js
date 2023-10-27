@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { getAverageTemperature, getClimate, getElevation, getPopulationDensity } from './helper.js';
 import './loadenv.js';
 
@@ -121,5 +121,35 @@ export const QueryLocationsByName = async (user_id, name) => {
         console.error(error);
     } finally {
         return locationsArr;
+    }
+}
+
+// export const UpdateLocation = async (_id, updatedData) => {
+//     try {
+//         const db = client.db('geodb');
+//         const locations = db.collection('locations');
+
+//         location = await locations.findOneAndUpdate(
+//             {_id: new ObjectId(_id)},
+//             {$set: updatedData},
+//             { returnOriginal: false }
+//         );
+//     } catch (error) {
+//         console.error(error);
+//     } finally {
+//         return location.value;
+//     }
+// }
+
+export const DeleteLocation = async (_id) => {
+    try {
+        const db = client.db('geodb');
+        const locations = db.collection('locations');
+
+        location = await locations.deleteOne({_id: new ObjectId(_id)});
+    } catch (error) {
+        console.error(error);
+    } finally {
+        return location;
     }
 }
