@@ -7,26 +7,16 @@ import {
     GraphQLString,
     GraphQLNonNull,
     GraphQLList,
-    graphql,
-    GraphQLFloat
+    GraphQLFloat,
 } from 'graphql';
-import { addLocation } from './locations.js';
+import { QueryLocations, addLocation } from './locations.js';
+import { UserType, LocationType } from './graphQLObjects.js';
 
 const app = express();
 
-const UserType = new GraphQLObjectType({
-    name: 'User',
-    description: 'This represents a users credentials',
-    fields: () => ({
-        email: { type: GraphQLString },
-        username: { type: GraphQLString },
-        password: { type: GraphQLString }
-    })
-});
-
 const RootQueryType = new GraphQLObjectType({
     name: 'Query',
-    description: 'Root Query',
+    description: 'All query points',
     fields: () => ({
         user: {
             type: UserType,
@@ -51,13 +41,21 @@ const RootQueryType = new GraphQLObjectType({
                 value: { type: GraphQLNonNull(GraphQLString) }
             },
             resolve: (parent, args) => FindUsersByField(args.field, args.value)
+        },
+        locations: {
+            type: new GraphQLList(LocationType),
+            description: 'Returns a list of all locations added by a specific user',
+            args: {
+                user_id: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => QueryLocations(args.user_id)
         }
     })
 });
 
 const RootMutationType = new GraphQLObjectType({
     name: 'Mutation',
-    description: 'Root Mutation',
+    description: 'All Mutation points',
     fields: () => ({
         addUser: {
             type: GraphQLString,
