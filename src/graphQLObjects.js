@@ -31,7 +31,7 @@ export const LocationType = new GraphQLObjectType({
 });
 
 export const PointType = new GraphQLObjectType({
-    name: 'Coordinate Point',
+    name: 'Coordinate',
     description: 'This represents a single Coordinate',
     fields: () => ({
         latitude: { type: GraphQLNonNull(GraphQLFloat) },
