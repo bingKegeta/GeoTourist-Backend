@@ -27,7 +27,7 @@ export const LocationType = new GraphQLObjectType({
         location: { type: PointType },
         elevation: { type: GraphQLInt },
         avg_temp: { type: GraphQLFloat },
-        koppen: { type: GraphQLString },
+        trewartha: { type: GraphQLString },
         climate_zone: { type: GraphQLString }
     })
 });

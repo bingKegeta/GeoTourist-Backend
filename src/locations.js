@@ -50,7 +50,7 @@ export const addLocation = async function (user_id, name, latitude, longitude) {
                 "elevation": elevation,
                 // "population_density": population_density,
                 "avg_temp": avg_temp,
-                "koppen": climate[0],
+                "trewartha": climate[0],
                 "climate_zone": climate[1]
             };
             await locations.insertOne(query);
@@ -110,7 +110,7 @@ export const UpdateLocation = async (_id, updatedData) => {
 
         let elevation = oldLocation.elevation;
         let avg_temp = oldLocation.avg_temp;
-        let climate = [oldLocation.koppen, oldLocation.climate_zone];
+        let climate = [oldLocation.trewartha, oldLocation.climate_zone];
 
         // only get data from apis if coords changed
         if (latitude != oldLocation.location.coordinates[1] ||
@@ -123,7 +123,7 @@ export const UpdateLocation = async (_id, updatedData) => {
 
         updatedData.elevation = elevation;
         updatedData.avg_temp = avg_temp;
-        updatedData.koppen = climate[0];
+        updatedData.trewartha = climate[0];
         updatedData.climate_zone = climate[1];
 
         const updatedLocation = mapLocationGraphQLToMongo(updatedData);

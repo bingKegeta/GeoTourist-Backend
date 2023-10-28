@@ -18,7 +18,7 @@ export const mapLocationMongoToGraphQL = (query) => {
             },
             elevation: item.elevation,
             avg_temp: item.avg_temp,
-            koppen: item.koppen,
+            trewartha: item.trewartha,
             climate_zone: item.climate_zone
         };
     });
@@ -34,7 +34,7 @@ export const mapLocationGraphQLToMongo = (input) => {
         },
         elevation: input.elevation,
         avg_temp: input.avg_temp,
-        koppen: input.koppen,
+        trewartha: input.trewartha,
         climate_zone: input.climate_zone
     };
 }
@@ -78,11 +78,12 @@ export const getClimate = async (latitude, longitude) => {
 
     try {
         const response = await axios.get(endpoint);
-        const data = response.data.data[0];
-        const koppenCode = data.code;
+        // console.log(response.data.data);
+        const data = response.data.data[response.data.data.length - 1];
+        const trewarthaCode = data.code;
         const climateDesc = data.text;
 
-        return [koppenCode, climateDesc];
+        return [trewarthaCode, climateDesc];
     } catch (error) {
         console.error('Failed to retreive climate data', error);
         throw new Error('Failed to retrieve climate data');
