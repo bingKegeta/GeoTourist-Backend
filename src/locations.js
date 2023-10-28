@@ -5,7 +5,7 @@ import './loadenv.js';
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
-let locationsArr, location, newLocation;
+let locationsArr, location;
 
 export const addLocation = async function (user_id, name, latitude, longitude) {
     try {
@@ -105,22 +105,37 @@ export const UpdateLocation = async (_id, updatedData) => {
 
         const oldLocation = await locations.findOne( { _id: new ObjectId(_id) });
 
-        const latitude = updatedData.location.latitude;
-        const longitude = updatedData.location.longitude;
+        // set name to old name if name is not provided
+        if (!updatedData.name) {
+            updatedData.name = oldLocation.name;
+        }
 
         let elevation = oldLocation.elevation;
         let avg_temp = oldLocation.avg_temp;
         let climate = [oldLocation.trewartha, oldLocation.climate_zone];
+        let latitude = oldLocation.location.coordinates[1];
+        let longitude = oldLocation.location.coordinates[0];
 
-        // only get data from apis if coords changed
-        if (latitude != oldLocation.location.coordinates[1] ||
-            longitude != oldLocation.location.coordinates[0])
-        {
-            elevation = await getElevation(latitude, longitude);
-            avg_temp = await getAverageTemperature(latitude, longitude);
-            climate = await getClimate(latitude, longitude);
+        // console.log(latitude, longitude, updatedData.name);
+
+        // only go along with this if location is provided
+        if (updatedData.location){
+            latitude = updatedData.location.latitude;
+            longitude = updatedData.location.longitude;
+
+            // only get data from apis if coords changed
+            if (latitude != oldLocation.location.coordinates[1] ||
+                longitude != oldLocation.location.coordinates[0])
+            {
+                elevation = await getElevation(latitude, longitude);
+                avg_temp = await getAverageTemperature(latitude, longitude);
+                climate = await getClimate(latitude, longitude);
+            }
         }
 
+        updatedData.location = {};
+        updatedData.location.longitude = longitude;
+        updatedData.location.latitude = latitude;
         updatedData.elevation = elevation;
         updatedData.avg_temp = avg_temp;
         updatedData.trewartha = climate[0];
