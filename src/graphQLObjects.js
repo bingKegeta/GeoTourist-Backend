@@ -3,7 +3,9 @@ import {
     GraphQLString,
     GraphQLNonNull,
     GraphQLFloat,
-    GraphQLInt
+    GraphQLInt,
+    GraphQLInputObjectType,
+    GraphQLList
 } from 'graphql';
 
 export const UserType = new GraphQLObjectType({
@@ -23,10 +25,10 @@ export const LocationType = new GraphQLObjectType({
         user_id: { type: GraphQLString },
         name: { type: GraphQLString },
         location: { type: PointType },
-        elevation: { type: GraphQLNonNull(GraphQLInt) },
-        average_temperature: { type: GraphQLNonNull(GraphQLFloat) },
-        kopen_climate: { type: GraphQLString },
-        zone_description: { type: GraphQLString }
+        elevation: { type: GraphQLInt },
+        avg_temp: { type: GraphQLFloat },
+        trewartha: { type: GraphQLString },
+        climate_zone: { type: GraphQLString }
     })
 });
 
@@ -36,5 +38,23 @@ export const PointType = new GraphQLObjectType({
     fields: () => ({
         latitude: { type: GraphQLNonNull(GraphQLFloat) },
         longitude: { type: GraphQLNonNull(GraphQLFloat) }
+    })
+});
+
+export const PointInputType = new GraphQLInputObjectType({
+    name: 'CoordinateInput',
+    description: 'This represents a single Coordinate Input',
+    fields: () => ({
+        latitude: { type: GraphQLNonNull(GraphQLFloat) },
+        longitude: { type: GraphQLNonNull(GraphQLFloat) }
+    })
+});
+
+export const LocationUpdateInputType = new GraphQLInputObjectType({
+    name: 'LocationInput',
+    description: 'This is used for updating a Location',
+    fields: () => ({
+        name: { type: GraphQLString },
+        location: { type: PointInputType }
     })
 });

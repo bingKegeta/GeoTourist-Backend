@@ -1,11 +1,11 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { getAverageTemperature, getClimate, getElevation, getPopulationDensity } from './helper.js';
+import { getAverageTemperature, getClimate, getElevation, getPopulationDensity, mapLocationGraphQLToMongo, mapLocationMongoToGraphQL } from './helper.js';
 import './loadenv.js';
 
-const uri = process.env.uri;
+const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
-let locationsArr, location, newLocation;
+let locationsArr, location;
 
 export const addLocation = async function (user_id, name, latitude, longitude) {
     try {
@@ -50,8 +50,8 @@ export const addLocation = async function (user_id, name, latitude, longitude) {
                 "elevation": elevation,
                 // "population_density": population_density,
                 "avg_temp": avg_temp,
-                "koppen": climate[0],
-                "climate zone": climate[1]
+                "trewartha": climate[0],
+                "climate_zone": climate[1]
             };
             await locations.insertOne(query);
             return 'Success';
@@ -73,20 +73,7 @@ export const QueryLocations = async (user_id) => {
 
         //* Mapping the data to the specific graphQL shape since mongodb points don't convert to
         //* a graphQL Object
-        locationsArr = query.map(item => {
-            return {
-              user_id: item.user_id,
-              name: item.name,
-              location: {
-                latitude: item.location.coordinates[1], // Latitude at 1
-                longitude: item.location.coordinates[0] // Longitude at 0
-              },
-              elevation: item.elevation,
-              average_temperature: item.avg_temp,
-              kopen_climate: item.koppen,
-              zone_description: item['climate zone']
-            };
-        });
+        locationsArr = mapLocationMongoToGraphQL(query);
 
         return locationsArr;
     } catch (error) {
@@ -103,20 +90,7 @@ export const QueryLocationsByName = async (user_id, name) => {
         query['name'] = new RegExp(name, 'i');
 
         const mongo_query = await locations.find({$and: [{user_id: user_id}, query]}).toArray();
-        locationsArr = mongo_query.map(item => {
-            return {
-              user_id: item.user_id,
-              name: item.name,
-              location: {
-                latitude: item.location.coordinates[1], // Latitude at 1
-                longitude: item.location.coordinates[0] // Longitude at 0
-              },
-              elevation: item.elevation,
-              average_temperature: item.avg_temp,
-              kopen_climate: item.koppen,
-              zone_description: item['climate zone']
-            };
-        });
+        locationsArr = mapLocationMongoToGraphQL(mongo_query);
     } catch (error) {
         console.error(error);
     } finally {
@@ -124,22 +98,62 @@ export const QueryLocationsByName = async (user_id, name) => {
     }
 }
 
-// export const UpdateLocation = async (_id, updatedData) => {
-//     try {
-//         const db = client.db('geodb');
-//         const locations = db.collection('locations');
+export const UpdateLocation = async (_id, updatedData) => {
+    try {
+        const db = client.db('geodb');
+        const locations = db.collection('locations');
 
-//         location = await locations.findOneAndUpdate(
-//             {_id: new ObjectId(_id)},
-//             {$set: updatedData},
-//             { returnOriginal: false }
-//         );
-//     } catch (error) {
-//         console.error(error);
-//     } finally {
-//         return location.value;
-//     }
-// }
+        const oldLocation = await locations.findOne( { _id: new ObjectId(_id) });
+
+        // set name to old name if name is not provided
+        if (!updatedData.name) {
+            updatedData.name = oldLocation.name;
+        }
+
+        let elevation = oldLocation.elevation;
+        let avg_temp = oldLocation.avg_temp;
+        let climate = [oldLocation.trewartha, oldLocation.climate_zone];
+        let latitude = oldLocation.location.coordinates[1];
+        let longitude = oldLocation.location.coordinates[0];
+
+        // console.log(latitude, longitude, updatedData.name);
+
+        // only go along with this if location is provided
+        if (updatedData.location){
+            latitude = updatedData.location.latitude;
+            longitude = updatedData.location.longitude;
+
+            // only get data from apis if coords changed
+            if (latitude != oldLocation.location.coordinates[1] ||
+                longitude != oldLocation.location.coordinates[0])
+            {
+                elevation = await getElevation(latitude, longitude);
+                avg_temp = await getAverageTemperature(latitude, longitude);
+                climate = await getClimate(latitude, longitude);
+            }
+        }
+
+        updatedData.location = {};
+        updatedData.location.longitude = longitude;
+        updatedData.location.latitude = latitude;
+        updatedData.elevation = elevation;
+        updatedData.avg_temp = avg_temp;
+        updatedData.trewartha = climate[0];
+        updatedData.climate_zone = climate[1];
+
+        const updatedLocation = mapLocationGraphQLToMongo(updatedData);
+
+        location = await locations.findOneAndUpdate(
+            { _id: new ObjectId(_id) },
+            { $set: updatedLocation },
+            { returnDocument: 'after' }
+        );
+    } catch (error) {
+        console.error(error);
+    } finally {
+        return location;
+    }
+}
 
 export const DeleteLocation = async (_id) => {
     try {
@@ -147,6 +161,7 @@ export const DeleteLocation = async (_id) => {
         const locations = db.collection('locations');
 
         location = await locations.deleteOne({_id: new ObjectId(_id)});
+        location = (location.deletedCount > 0) ? 'Success' : 'Failure';
     } catch (error) {
         console.error(error);
     } finally {

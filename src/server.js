@@ -9,7 +9,7 @@ import {
     GraphQLList,
     GraphQLFloat,
 } from 'graphql';
-import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation } from './locations.js';
+import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation, UpdateLocation } from './locations.js';
 import { UserType, LocationType, LocationUpdateInputType } from './graphQLObjects.js';
 
 const app = express();
@@ -96,17 +96,17 @@ const RootMutationType = new GraphQLObjectType({
             },
             resolve: (parent, args) => addLocation(args.user_id, args.name, args.latitude, args.longitude)
         },
-        // updateLocation: {
-        //     type: LocationType,
-        //     description: 'Update a selected location with new data',
-        //     args: {
-        //         _id: { type: GraphQLString },
-        //         updatedData: { type: LocationUpdateInputType }
-        //     },
-        //     resolve: (parent, args) => UpdateLocation(args._id, args.updatedData)
-        // }
-        deleteLocation: {
+        updateLocation: {
             type: LocationType,
+            description: 'Update a selected location with new data',
+            args: {
+                _id: { type: GraphQLString },
+                updatedData: { type: LocationUpdateInputType }
+            },
+            resolve: (parent, args) => UpdateLocation(args._id, args.updatedData)
+        },
+        deleteLocation: {
+            type: GraphQLString,
             description: 'Remove entry based on the Object ID of the selected location',
             args: {
                 _id: { type: GraphQLString }
