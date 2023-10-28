@@ -2,7 +2,7 @@ import { MongoClient, ObjectId } from 'mongodb';
 import { getAverageTemperature, getClimate, getElevation, getPopulationDensity } from './helper.js';
 import './loadenv.js';
 
-const uri = process.env.uri;
+const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 
 let locationsArr, location, newLocation;
@@ -51,7 +51,7 @@ export const addLocation = async function (user_id, name, latitude, longitude) {
                 // "population_density": population_density,
                 "avg_temp": avg_temp,
                 "koppen": climate[0],
-                "climate zone": climate[1]
+                "climate_zone": climate[1]
             };
             await locations.insertOne(query);
             return 'Success';
@@ -84,7 +84,7 @@ export const QueryLocations = async (user_id) => {
               elevation: item.elevation,
               average_temperature: item.avg_temp,
               kopen_climate: item.koppen,
-              zone_description: item['climate zone']
+              zone_description: item.climate_zone
             };
         });
 
@@ -114,7 +114,7 @@ export const QueryLocationsByName = async (user_id, name) => {
               elevation: item.elevation,
               average_temperature: item.avg_temp,
               kopen_climate: item.koppen,
-              zone_description: item['climate zone']
+              zone_description: item.climate_zone
             };
         });
     } catch (error) {
@@ -124,22 +124,34 @@ export const QueryLocationsByName = async (user_id, name) => {
     }
 }
 
-// export const UpdateLocation = async (_id, updatedData) => {
-//     try {
-//         const db = client.db('geodb');
-//         const locations = db.collection('locations');
+export const UpdateLocation = async (_id, updatedData) => {
+    try {
+        const db = client.db('geodb');
+        const locations = db.collection('locations');
 
-//         location = await locations.findOneAndUpdate(
-//             {_id: new ObjectId(_id)},
-//             {$set: updatedData},
-//             { returnOriginal: false }
-//         );
-//     } catch (error) {
-//         console.error(error);
-//     } finally {
-//         return location.value;
-//     }
-// }
+        const longitude = updatedData.location.coordinates[0];
+        const latitude = updatedData.location.coordinates[1];
+
+        const elevation = await getElevation(latitude, longitude);
+        const avg_temp = await getAverageTemperature(latitude, longitude);
+        const climate = await getClimate(latitude, longitude);
+
+        updatedData.elevation = elevation;
+        updatedData.avg_temp = avg_temp;
+        updatedData.koppen = climate[0];
+        updatedData.climate_zone = climate[1];
+
+        location = await locations.findOneAndUpdate(
+            {_id: new ObjectId(_id)},
+            { $set: updatedData },
+            { returnDocument: 'after' }
+        );
+    } catch (error) {
+        console.error(error);
+    } finally {
+        return location;
+    }
+}
 
 export const DeleteLocation = async (_id) => {
     try {
@@ -147,6 +159,7 @@ export const DeleteLocation = async (_id) => {
         const locations = db.collection('locations');
 
         location = await locations.deleteOne({_id: new ObjectId(_id)});
+        location = (location.deletedCount > 0) ? 'Success' : 'Failure';
     } catch (error) {
         console.error(error);
     } finally {

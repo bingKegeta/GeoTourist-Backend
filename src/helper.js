@@ -41,14 +41,15 @@ export const getAverageTemperature = async (latitude, longitude) => {
 }
 
 export const getClimate = async (latitude, longitude) => {
-    const endpoint = `${CLIMATE_URI}${latitude}/${longitude}`;
+    const endpoint = `${CLIMATE_URI}lat=${latitude}&lon=${longitude}`;
 
     try {
         const response = await axios.get(endpoint);
-        const koppenClimate = response.data.return_values[0].koppen_geiger_zone;
-        const climateDesc = response.data.return_values[0].zone_description;
+        const data = response.data.data[0];
+        const koppenCode = data.code;
+        const climateDesc = data.text;
 
-        return [koppenClimate, climateDesc];
+        return [koppenCode, climateDesc];
     } catch (error) {
         console.error('Failed to retreive climate data', error);
         throw new Error('Failed to retrieve climate data');
