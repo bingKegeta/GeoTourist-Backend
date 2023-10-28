@@ -1,5 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { getAverageTemperature, getClimate, getElevation, getPopulationDensity, mapLocationMongoToGraphQL } from './helper.js';
+import { getAverageTemperature, getClimate, getElevation, getPopulationDensity, mapLocationGraphQLToMongo, mapLocationMongoToGraphQL } from './helper.js';
 import './loadenv.js';
 
 const uri = process.env.MONGO_URI;
@@ -103,21 +103,34 @@ export const UpdateLocation = async (_id, updatedData) => {
         const db = client.db('geodb');
         const locations = db.collection('locations');
 
-        const longitude = updatedData.location.coordinates[0];
-        const latitude = updatedData.location.coordinates[1];
+        const oldLocation = await locations.findOne( { _id: new ObjectId(_id) });
 
-        const elevation = await getElevation(latitude, longitude);
-        const avg_temp = await getAverageTemperature(latitude, longitude);
-        const climate = await getClimate(latitude, longitude);
+        const latitude = updatedData.location.latitude;
+        const longitude = updatedData.location.longitude;
+
+        let elevation = oldLocation.elevation;
+        let avg_temp = oldLocation.avg_temp;
+        let climate = [oldLocation.koppen, oldLocation.climate_zone];
+
+        // only get data from apis if coords changed
+        if (latitude != oldLocation.location.coordinates[1] ||
+            longitude != oldLocation.location.coordinates[0])
+        {
+            elevation = await getElevation(latitude, longitude);
+            avg_temp = await getAverageTemperature(latitude, longitude);
+            climate = await getClimate(latitude, longitude);
+        }
 
         updatedData.elevation = elevation;
         updatedData.avg_temp = avg_temp;
         updatedData.koppen = climate[0];
         updatedData.climate_zone = climate[1];
 
+        const updatedLocation = mapLocationGraphQLToMongo(updatedData);
+
         location = await locations.findOneAndUpdate(
-            {_id: new ObjectId(_id)},
-            { $set: updatedData },
+            { _id: new ObjectId(_id) },
+            { $set: updatedLocation },
             { returnDocument: 'after' }
         );
     } catch (error) {

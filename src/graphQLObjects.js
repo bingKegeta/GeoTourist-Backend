@@ -45,8 +45,8 @@ export const PointInputType = new GraphQLInputObjectType({
     name: 'CoordinateInput',
     description: 'This represents a single Coordinate Input',
     fields: () => ({
-        type: { type: GraphQLNonNull(GraphQLString) }, // if no type given MongoServer cannot recognize GeoJSON object
-        coordinates: { type: GraphQLList(GraphQLFloat) } // pair of coordinates in GeoJSON format, longitude then latitude
+        latitude: { type: GraphQLNonNull(GraphQLFloat) },
+        longitude: { type: GraphQLNonNull(GraphQLFloat) }
     })
 });
 
@@ -54,7 +54,7 @@ export const LocationUpdateInputType = new GraphQLInputObjectType({
     name: 'LocationInput',
     description: 'This is used for updating a Location',
     fields: () => ({
-        name: { type: GraphQLString },
-        location: { type: PointInputType }
+        name: { type: GraphQLNonNull(GraphQLString) },
+        location: { type: GraphQLNonNull(PointInputType) }
     })
 });

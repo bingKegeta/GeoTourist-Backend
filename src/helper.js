@@ -6,14 +6,15 @@ const weatherURL = process.env.WEATHER_API_URI;
 const elevationEndpoint = process.env.ELEVATION_URI;
 const CLIMATE_URI = process.env.CLIMATE_URI;
 
+// takes array of mongo locations
 export const mapLocationMongoToGraphQL = (query) => {
     return query.map(item => {
         return {
             user_id: item.user_id,
             name: item.name,
             location: {
-                longitude: item.location.coordinates[0], // Longitude at 0
-                latitude: item.location.coordinates[1] // Latitude at 1
+                latitude: item.location.coordinates[1], // Latitude at 1
+                longitude: item.location.coordinates[0] // Longitude at 0
             },
             elevation: item.elevation,
             avg_temp: item.avg_temp,
@@ -21,6 +22,21 @@ export const mapLocationMongoToGraphQL = (query) => {
             climate_zone: item.climate_zone
         };
     });
+}
+
+// takes a single location in graphql and turns it into mongo
+export const mapLocationGraphQLToMongo = (input) => {
+    return {
+        name: input.name,
+        location: {
+            type: 'Point',
+            coordinates: [input.location.longitude, input.location.latitude]
+        },
+        elevation: input.elevation,
+        avg_temp: input.avg_temp,
+        koppen: input.koppen,
+        climate_zone: input.climate_zone
+    };
 }
 
 export const generateAuthToken = (user) => { return user._id; }
