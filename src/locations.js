@@ -1,5 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { getAverageTemperature, getClimate, getElevation, getPopulationDensity } from './helper.js';
+import { getAverageTemperature, getClimate, getElevation, getPopulationDensity, mapLocationMongoToGraphQL } from './helper.js';
 import './loadenv.js';
 
 const uri = process.env.MONGO_URI;
@@ -73,20 +73,7 @@ export const QueryLocations = async (user_id) => {
 
         //* Mapping the data to the specific graphQL shape since mongodb points don't convert to
         //* a graphQL Object
-        locationsArr = query.map(item => {
-            return {
-              user_id: item.user_id,
-              name: item.name,
-              location: {
-                latitude: item.location.coordinates[1], // Latitude at 1
-                longitude: item.location.coordinates[0] // Longitude at 0
-              },
-              elevation: item.elevation,
-              average_temperature: item.avg_temp,
-              kopen_climate: item.koppen,
-              zone_description: item.climate_zone
-            };
-        });
+        locationsArr = mapLocationMongoToGraphQL(query);
 
         return locationsArr;
     } catch (error) {
@@ -103,20 +90,7 @@ export const QueryLocationsByName = async (user_id, name) => {
         query['name'] = new RegExp(name, 'i');
 
         const mongo_query = await locations.find({$and: [{user_id: user_id}, query]}).toArray();
-        locationsArr = mongo_query.map(item => {
-            return {
-              user_id: item.user_id,
-              name: item.name,
-              location: {
-                latitude: item.location.coordinates[1], // Latitude at 1
-                longitude: item.location.coordinates[0] // Longitude at 0
-              },
-              elevation: item.elevation,
-              average_temperature: item.avg_temp,
-              kopen_climate: item.koppen,
-              zone_description: item.climate_zone
-            };
-        });
+        locationsArr = mapLocationMongoToGraphQL(mongo_query);
     } catch (error) {
         console.error(error);
     } finally {

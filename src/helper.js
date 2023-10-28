@@ -6,6 +6,23 @@ const weatherURL = process.env.WEATHER_API_URI;
 const elevationEndpoint = process.env.ELEVATION_URI;
 const CLIMATE_URI = process.env.CLIMATE_URI;
 
+export const mapLocationMongoToGraphQL = (query) => {
+    return query.map(item => {
+        return {
+            user_id: item.user_id,
+            name: item.name,
+            location: {
+                longitude: item.location.coordinates[0], // Longitude at 0
+                latitude: item.location.coordinates[1] // Latitude at 1
+            },
+            elevation: item.elevation,
+            avg_temp: item.avg_temp,
+            koppen: item.koppen,
+            climate_zone: item.climate_zone
+        };
+    });
+}
+
 export const generateAuthToken = (user) => { return user._id; }
 
 export const getElevation = async (latitude, longitude) => {
