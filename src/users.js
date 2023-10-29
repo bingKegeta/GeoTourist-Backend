@@ -1,4 +1,5 @@
 import { MongoClient } from 'mongodb';
+import bcrypt from 'bcrypt';
 import { generateAuthToken } from './helper.js';
 import './loadenv.js';
 
@@ -7,6 +8,7 @@ import './loadenv.js';
 
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
+const SALT_ROUNDS = 16;
 let usersArr, user, newUser;
 
 export const QueryUsers = async function()
@@ -16,13 +18,6 @@ export const QueryUsers = async function()
         const db = client.db('geodb');
         const users = db.collection('users');
         usersArr = await users.find({}).toArray();
-        
-
-        // Query for a user with the name Ryan
-        // const query = { "name": { $regex: "Ryan"}};
-        // const user = await users.findOne(query);
-
-        // console.log(user);
     }
     finally
     {
@@ -31,7 +26,7 @@ export const QueryUsers = async function()
     await client.close();
 }
 
-export const FindUser = async function(email, username, password)
+export const FindUser = async function(email, username)
 {
     try
     {
@@ -40,11 +35,8 @@ export const FindUser = async function(email, username, password)
 
         const query = {
             "email": new RegExp('^' + email + '$'),
-            "username": new RegExp('^' + username + '$'),
-            "password": new RegExp('^' + password + '$')
+            "username": new RegExp('^' + username + '$')
         };
-        // const query = { "username": { $regex: username}};
-        // const query = { "username": new RegExp(username)};
 
         user = await users.findOne(query);
     }
@@ -59,6 +51,11 @@ export const FindUsersByField = async function (field, value) {
     try {
         const db = client.db('geodb');
         const usersCollection = db.collection('users');
+
+        if (field == "password")
+        {
+            throw new Error("Cannot search by password");
+        }
 
         const query = {};
         query[field] = new RegExp(value, 'i'); // Use case-insensitive regex for partial matches
@@ -80,24 +77,30 @@ export const AddUser = async function(email, username, password)
         const db = client.db('geodb');
         const users = db.collection('users');
 
+        const salt = await bcrypt.genSalt(SALT_ROUNDS);
+        const hash = await bcrypt.hash(password, salt);
+
         const doc = {
             "email": email,
             "username": username,
-            "password": password
+            "password": hash
         };
 
         const checkUser = await users.findOne(doc);
         if (checkUser) {
             throw new Error('User already exists');
         } else {
-            await users.insertOne(doc);
+            doc._id = (await users.insertOne(doc)).insertedId;
+            newUser = doc;
+
+            // await users.insertOne(doc);
     
-            const query = {
-                "email": new RegExp('^' + email + '$'),
-                "username": new RegExp('^' + username + '$'),
-                "password": new RegExp('^' + password + '$')
-            };
-            newUser = await users.findOne(query);
+            // const query = {
+            //     "email": new RegExp('^' + email + '$'),
+            //     "username": new RegExp('^' + username + '$'),
+            //     "password": new RegExp('^' + hash + '$')
+            // };
+            // newUser = await users.findOne(query);
         }
     }catch (error) {
         console.log("Error adding user:", error);
@@ -127,7 +130,7 @@ export const Login = async function (emailOrUsername, password) {
         }
 
         // Check if the provided password matches the stored password (you should use a secure method like bcrypt for this)
-        const isPasswordValid = (user.password === password);
+        const isPasswordValid = await bcrypt.compare(password, user.password);
 
         if (!isPasswordValid) {
             throw new Error('Invalid password');

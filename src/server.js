@@ -23,10 +23,9 @@ const RootQueryType = new GraphQLObjectType({
             description: 'Returns a single specific user depending on their details',
             args: {
                 email: { type: GraphQLNonNull(GraphQLString) },
-                username: { type: GraphQLNonNull(GraphQLString) },
-                password: { type: GraphQLNonNull(GraphQLString) }
+                username: { type: GraphQLNonNull(GraphQLString) }
             },
-            resolve: (parent, args) => FindUser(args.email, args.username, args.password)
+            resolve: (parent, args) => FindUser(args.email, args.username)
         },
         users: {
             type: new GraphQLList(UserType),
