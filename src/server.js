@@ -11,6 +11,7 @@ import {
 } from 'graphql';
 import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation, UpdateLocation } from './locations.js';
 import { UserType, LocationType, LocationUpdateInputType } from './graphQLObjects.js';
+import cors from 'cors';
 
 const app = express();
 
@@ -119,6 +120,10 @@ const schema = new GraphQLSchema({
     query: RootQueryType,
     mutation: RootMutationType
 });
+
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 app.use('/api', graphqlHTTP({
     schema,
