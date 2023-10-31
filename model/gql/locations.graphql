@@ -1,0 +1,6 @@
+query ($user_id: String!) {
+    locations (user_id: $user_id) {
+        name
+        climate_zone
+    }
+}

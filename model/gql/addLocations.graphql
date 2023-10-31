@@ -1,0 +1,8 @@
+mutation ($user_id: String!, $name: String!, $latitude: Float!, $longitude: Float!) {
+  addLocation(
+    user_id: $user_id
+    name: $name
+    latitude: $latitude
+    longitude: $longitude
+  )
+}
