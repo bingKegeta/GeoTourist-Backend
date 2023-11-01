@@ -1,6 +1,6 @@
 import express from 'express';
 import { graphqlHTTP } from 'express-graphql';
-import { AddUser, FindUser, QueryUsers, FindUsersByField, Login } from './users.js';
+import { AddUser, FindUser, QueryUsers, FindUsersByField, Login, FindUserByID } from './users.js';
 import {
     GraphQLSchema,
     GraphQLObjectType,
@@ -41,6 +41,14 @@ const RootQueryType = new GraphQLObjectType({
                 value: { type: GraphQLNonNull(GraphQLString) }
             },
             resolve: (parent, args) => FindUsersByField(args.field, args.value)
+        },
+        userByID: {
+            type: UserType,
+            description: 'Returns the user document with the given MongoDB Object ID field',
+            args: {
+                _id: { type: GraphQLNonNull(GraphQLString) }
+            },
+            resolve: (parent, args) => FindUserByID(args._id)
         },
         locations: {
             type: new GraphQLList(LocationType),
