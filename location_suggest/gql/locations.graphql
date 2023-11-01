@@ -1,6 +1,13 @@
 query ($user_id: String!) {
     locations (user_id: $user_id) {
         name
+        location {
+            latitude
+            longitude
+        }
+        elevation
+        avg_temp
+        trewartha
         climate_zone
     }
 }

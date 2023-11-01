@@ -9,7 +9,7 @@ import random
 import requests
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 import str2bool
-from dataset import getCoordinates
+from dataset import getCoordinates, make_graphql_request, location_json_to_list
 
 
 class DestinationSuggestor:
@@ -39,8 +39,8 @@ class DestinationSuggestor:
             raise RuntimeError("Tried to infer while DestinationSuggestor model was not trained or loaded.")
         
         decoded_city_names = [self.onehot_mapping[city_num] for city_num in encoded_prediction]
-        decoded_country_names = [self.country_map[city_num] for city_num in encoded_prediction]
-        coordinates = [getCoordinates(city_name) for city_name in decoded_city_names]
+        decoded_country_names = [self.country_map[country_num] for country_num in encoded_prediction]
+        decoded_city_coordinates = [getCoordinates(city_name) for city_name in decoded_city_names]
 
         # Return a json of the recommended locations
         return [{
@@ -48,7 +48,7 @@ class DestinationSuggestor:
             "country": country_name,
             "latitude": coordinates[0],
             "longitude": coordinates[1]
-        } for (city_name, country_name) in zip(decoded_city_names, decoded_country_names, coordinates)]
+        } for (city_name, country_name, coordinates) in zip(decoded_city_names, decoded_country_names, decoded_city_coordinates)]
 
     def save(self, filename: str) -> None:
         with open(filename, 'wb') as modelfile:
@@ -81,10 +81,13 @@ def main(args):
         suggestor.load(args.model_filename)
 
     if args.user_id:
-        most_recent_locations = user_id_to_locations(args.user_id)[-4:]
+        most_recent_locations = np.array(
+                [location_json_to_list(location_json)['data']['locations']
+                 for location_json in make_graphql_request("./gql/locations.graphql", {'user_id': args.user_id})[-4:]]
+            )
         return suggestor.infer(most_recent_locations)
     else:
-        return {}
+        return {"Error": "No user_id provided to utilize for inference."}
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

@@ -19,6 +19,7 @@ def getCoordinates(city: str, geolocator: Nominatim = Nominatim(user_agent="tour
 
 def make_graphql_request(query_filename: str = "./gql/users.graphql", variables: Dict[str, Any] = {}) -> Dict[str, Any]:
     """
+    Run a Query or Mutate request to GraphQL
     Sample uses:
     >>>print(make_graphql_request().json()['data'])
     >>>print(make_graphql_request("./gql/locations.graphql", {'user_id': USER_IDS}).json()['data'])
@@ -27,6 +28,14 @@ def make_graphql_request(query_filename: str = "./gql/users.graphql", variables:
         query = gql_query.read()
         gql_query.close()
     return requests.post("http://localhost:5000/api", json={'query': query , 'variables': variables})
+
+def location_json_to_list(location_json: Dict[str, Any]) -> List[str, Any]:
+    """
+    Unified way to convert a full location request to a list for use by the model.
+    We need this to ensure all indices of the values in the model are maintained
+    throughout the training and inference process.
+    """
+    return [location_json['latitude'], location_json['longitude'], location_json['elevation'], location_json['avg_temp'], location_json['trewartha'], location_json['climate_zone']]
 
 #TODO: Make this function return useful train data
 def do_real_locations_per_user_mimic_requests() -> List[Dict]:
