@@ -10,7 +10,7 @@ import {
     GraphQLFloat,
 } from 'graphql';
 import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation, UpdateLocation } from './locations.js';
-import { UserType, LocationType, LocationUpdateInputType } from './graphQLObjects.js';
+import { UserType, LocationType, LocationUpdateInputType, LocationNameType, LocationNameInputType } from './graphQLObjects.js';
 import cors from 'cors';
 
 const app = express();
@@ -60,7 +60,7 @@ const RootQueryType = new GraphQLObjectType({
         },
         locationsByName: {
             type: new GraphQLList(LocationType),
-            description: 'Returns a list of all locations by a user that contains the arg in its name',
+            description: 'This is not working now',
             args: {
                 user_id: { type: GraphQLNonNull(GraphQLString) },
                 name: { type: GraphQLString }
@@ -98,7 +98,7 @@ const RootMutationType = new GraphQLObjectType({
             description: 'Add a new location (won\'t accept any location that is in a 5km radius from an already existing location)',
             args: {
                 user_id: { type: GraphQLNonNull(GraphQLString) },
-                name: { type: GraphQLNonNull(GraphQLString) },
+                name: { type: GraphQLNonNull(LocationNameInputType) },
                 latitude: { type: GraphQLNonNull(GraphQLFloat) },
                 longitude: { type: GraphQLNonNull(GraphQLFloat) },
             },
