@@ -9,6 +9,7 @@ import './loadenv.js';
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 const SALT_ROUNDS = 16;
+const emailRegex = new RegExp(/(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21\x23-\x5b\x5d-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9]))\.){3}(?:(2(5[0-5]|[0-4][0-9])|1[0-9][0-9]|[1-9]?[0-9])|[a-z0-9-]*[a-z0-9]:(?:[\x01-\x08\x0b\x0c\x0e-\x1f\x21-\x5a\x53-\x7f]|\\[\x01-\x09\x0b\x0c\x0e-\x7f])+)\])/);
 let usersArr, user, newUser;
 
 export const QueryUsers = async function()
@@ -77,6 +78,12 @@ export const AddUser = async function(email, username, password)
         const db = client.db('geodb');
         const users = db.collection('users');
 
+        const emailValid = emailRegex.test(email);
+        if (!emailValid) {
+            newUser = null;
+            throw new Error('Email is not of valid format');
+        }
+        
         const salt = await bcrypt.genSalt(SALT_ROUNDS);
         const hash = await bcrypt.hash(password, salt);
 
@@ -86,28 +93,29 @@ export const AddUser = async function(email, username, password)
             "password": hash
         };
 
-        const checkUser = await users.findOne(doc);
-        if (checkUser) {
+        const exists = await users.findOne({
+            $or: [
+                { email: doc.email },
+                { username: doc.username}
+            ]
+        });
+        if (exists) {
+            newUser = null;
             throw new Error('User already exists');
         } else {
             doc._id = (await users.insertOne(doc)).insertedId;
             newUser = doc;
-
-            // await users.insertOne(doc);
-    
-            // const query = {
-            //     "email": new RegExp('^' + email + '$'),
-            //     "username": new RegExp('^' + username + '$'),
-            //     "password": new RegExp('^' + hash + '$')
-            // };
-            // newUser = await users.findOne(query);
         }
-    }catch (error) {
+    } catch (error) {
         console.log("Error adding user:", error);
     }
     finally
     {
-        return generateAuthToken(newUser);
+        if (newUser) {
+            return generateAuthToken(newUser);
+        } else {
+            return newUser;
+        }
     }
     await client.close();
 }
