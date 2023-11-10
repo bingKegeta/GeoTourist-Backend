@@ -12,6 +12,7 @@ export const UserType = new GraphQLObjectType({
     name: 'User',
     description: 'This represents a users credentials',
     fields: () => ({
+        _id: { type: GraphQLString },
         email: { type: GraphQLString },
         username: { type: GraphQLString },
         password: { type: GraphQLString }
@@ -23,7 +24,7 @@ export const LocationType = new GraphQLObjectType({
     description: 'This represents a location added by the user',
     fields: () => ({
         user_id: { type: GraphQLString },
-        name: { type: GraphQLString },
+        name: { type: LocationNameType },
         location: { type: PointType },
         elevation: { type: GraphQLInt },
         avg_temp: { type: GraphQLFloat },
@@ -58,3 +59,29 @@ export const LocationUpdateInputType = new GraphQLInputObjectType({
         location: { type: PointInputType }
     })
 });
+
+export const LocationNameType = new GraphQLObjectType({
+    name: 'Address',
+    description: 'This represents the full address of the location',
+    fields: () => ({
+        display: { type: GraphQLNonNull(GraphQLString) },
+        street: { type: GraphQLString },
+        city: { type: GraphQLString },
+        country: { type: GraphQLNonNull(GraphQLString) },
+        address: { type: GraphQLString },
+        postal: { type: GraphQLString }
+    })
+});
+
+export const LocationNameInputType = new GraphQLInputObjectType({
+    name: 'LocationNameInput',
+    description: 'This is used for adding the detailed name of a location',
+    fields: () => ({
+        display: { type: GraphQLNonNull(GraphQLString) },
+        street: { type: GraphQLString },
+        city: { type: GraphQLString },
+        country: { type: GraphQLNonNull(GraphQLString) },
+        address: { type: GraphQLString },
+        postal: { type: GraphQLString }
+    })
+})

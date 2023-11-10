@@ -11,7 +11,14 @@ export const mapLocationMongoToGraphQL = (query) => {
     return query.map(item => {
         return {
             user_id: item.user_id,
-            name: item.name,
+            name: {
+                display: item.name.display,
+                street: item.name.street ? item.name.street : '',
+                city: item.name.city ? item.name.city : '',
+                country: item.name.country ? item.name.country: '',
+                address: item.name.address ? item.name.address: '',
+                postal: item.name.postal ? item.name.postal: ''
+            },
             location: {
                 latitude: item.location.coordinates[1], // Latitude at 1
                 longitude: item.location.coordinates[0] // Longitude at 0
