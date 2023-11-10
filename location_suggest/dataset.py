@@ -2,6 +2,7 @@ from typing import Dict, Any, List, Optional, Tuple
 import requests
 import argparse
 import pandas as pd
+import random
 from geopy.exc import GeocoderTimedOut
 from geopy.geocoders import Nominatim
 
@@ -47,10 +48,11 @@ def add_random_locations(user_id: str, k: int) -> None:
         print(make_graphql_request("./gql/addLocations.graphql", {'user_id': user_id, 'name': f"location_{i}", 'latitude': random.random() * 180 - 90, 'longitude': random.random() * 360 - 180}).json())
 
 def main(args):
-    print("Stage 0: FABRICATE DATASET")
-    with open(args.possible_locations) as plfile:
-        df = pd.read_csv(plfile)
-        plfile.close()
+    add_random_locations("653bfedf1e7c5a2367365f16", 12)
+    # print("Stage 0: FABRICATE DATASET")
+    # with open(args.possible_locations) as plfile:
+    #     df = pd.read_csv(plfile)
+    #     plfile.close()
     
 
 if __name__ == "__main__":
