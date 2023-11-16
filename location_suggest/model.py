@@ -94,9 +94,9 @@ if __name__ == "__main__":
             prog='model.py',
             description='Performs training based on the data in the specified csv.'
         )
-    parser.add_argument('mapping_filename', default='./data/possible_locations.csv')
+    parser.add_argument('mapping_filename', default='./data/classes.csv')
     parser.add_argument('train', type=str2bool, default=True)
-    parser.add_argument('train_data_manifest', default='./data/generated/location_assoc.csv')
+    parser.add_argument('train_data_manifest', default='./data/generated/master.csv')
     parser.add_argument('model_filename', default='./bin/dest_suggestor.pkl')
     parser.add_argument('user_id', default='653bfedf1e7c5a2367365f16')
     args = parser.parse_args()
