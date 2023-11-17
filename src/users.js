@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import bcrypt from 'bcrypt';
 import { generateAuthToken } from './helper.js';
 import './loadenv.js';
@@ -70,6 +70,19 @@ export const FindUsersByField = async function (field, value) {
     await client.close();
 };
 
+export const FindUserByID = async function(_id)
+{
+    try {
+        const db = client.db('geodb');
+        const users = db.collection('users');
+
+        user = await users.findOne(new ObjectId(_id));
+    } catch (error) {
+        console.error("Unable to find user with input id", error);
+    } finally {
+        return user;
+    }
+}
 
 export const AddUser = async function(email, username, password)
 {

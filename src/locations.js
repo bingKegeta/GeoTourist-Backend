@@ -81,6 +81,8 @@ export const QueryLocations = async (user_id) => {
     }
 };
 
+
+//! Under Construction, will do later
 export const QueryLocationsByName = async (user_id, name) => {
     try {
         const db = client.db('geodb');
@@ -107,7 +109,7 @@ export const UpdateLocation = async (_id, updatedData) => {
 
         // set name to old name if name is not provided
         if (!updatedData.name) {
-            updatedData.name = oldLocation.name;
+            updatedData.name = oldLocation.name.display;
         }
 
         let elevation = oldLocation.elevation;
