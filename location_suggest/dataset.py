@@ -21,6 +21,10 @@ from geopy.geocoders import Nominatim
 # about three minutes.
 # """
 
+#TODO:
+# ClimateZone mappings
+# Four Location Sampling
+
 ONEHOT_MAPPING = {
     'Trewartha' : ['Ar', 'Am', 'Aw', 'Cf', 'Cs', 'Cw', 'Cr', 'Do', 'Dc', 'Eo', 'Ec', 'Ft', 'Fi', 'BW', 'BS'], # Wet to dry
     'ClimateZone' : [],
