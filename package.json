@@ -2,7 +2,7 @@
   "name": "geotourist_backend",
   "version": "0.0.1",
   "description": "",
-  "main": "server.js",
+  "main": "src/server.js",
   "type": "module",
   "scripts": {
     "devStart": "nodemon src/server.js"
