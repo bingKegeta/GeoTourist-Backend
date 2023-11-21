@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Any, List, Tuple, Optional
 
 import argparse
 import numpy as np
@@ -7,24 +7,56 @@ import pandas as pd
 import pickle
 import random
 import requests
-from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.ensemble import RandomForestClassifier
 import str2bool
-from dataset import get_coordinates_by_name, make_graphql_request, location_json_to_list
+from dataset import make_graphql_request, location_json_to_list, encode, decode
 
 class DestinationSuggestor:
     model: Optional[RandomForestClassifier]
+    onehot_mapping: Optional[List]
 
-    def __init__(self, onehot_mapping: List[str]):
+    def __init__(self):
         self.model = None
-        self.onehot_mapping = onehot_mapping
-    
-    def prep_data(self, train_data_manifest_filename: str) -> Tuple[np.ndarray]:
-        df = pd.read_csv(train_data_manifest_filename).fillna(0)
-        train_input = df.loc[:, df.columns != 'City, Country']
-        train_labels = df['City, Country']
-        return (train_input, train_labels)
+        self.onehot_mapping = None
 
-    def train(self, train_input: np.array, train_labels: np.array):
+    def _sample_4_destinations(self, location_feature_list: List[List[float]], class_col_idx: int, k: int = 5) -> Tuple[List[List[List[float]]], List[float]]:
+        # A custom bagging algorithm
+        sampled = []
+        labels = []
+        for _ in range(k):
+            for location_feature_set in location_feature_list:
+                current_sample = [
+                    location_feature_set,
+                    next(
+                            (feature_set for feature_set in location_feature_list[::-1] 
+                                if int(feature_set[class_col_idx]) == int(location_feature_set[class_col_idx])),
+                            random.choice(location_feature_list)
+                        )
+                ]
+                for _ in range(2):
+                    current_sample.append(random.choice(location_feature_list))
+                random.shuffle(current_sample)
+                sampled.append(np.array(current_sample))
+                print(sampled)
+                labels.append(np.argmax(np.bincount(np.array(sampled[-1][:,class_col_idx], dtype=np.int32))))
+        return (sampled, labels)
+    
+    def prep_data(self, train_data_manifest_filename: str) -> Tuple[List[List[float]], List[float]]:
+        df = pd.read_csv(train_data_manifest_filename)
+
+        for feature in df.columns:
+            if feature in ['Trewartha', 'ClimateZone']:
+                df[feature] = encode(df, feature)[feature].astype(float)
+            elif feature != 'Class':
+                df[feature] = df[feature].astype(float)
+
+        self.onehot_mapping = list(set(df['Class'].to_list()))
+        df['Class'] = pd.DataFrame({'Class' : [self.onehot_mapping.index(item) for item in df['Class']]})['Class'].astype(float)
+        
+        sampled, labels = self._sample_4_destinations(df.to_numpy(), df.columns.get_loc('Class'))
+        return ([location_quad.flatten() for location_quad in sampled], labels)
+
+    def train(self, train_input: List[List[float]], train_labels: List[float]) -> None:
         self.model = RandomForestClassifier()
         self.model.fit(train_input, train_labels)
 
@@ -52,26 +84,20 @@ class DestinationSuggestor:
 
 
 def main(args):
-    df = pd.read_csv(args.mapping_filename)
-    onehot_mapping = (df['City'] + ", " + df['Country']).to_numpy()
-    suggestor = DestinationSuggestor(onehot_mapping)
+    suggestor = DestinationSuggestor()
 
     if (args.train):
-        print("Stage 1: DATA PREPARATION")
-        train_input, train_labels = suggestor.prep_data(args.train_data_manifest)
+        print("Beginning data preparation and training...")
+        suggestor.train(*suggestor.prep_data(args.train_data_manifest))
 
-        print("Stage 2: TRAIN AND FIT TREE MODEL")
-        suggestor.train(train_input, train_labels)
-
-        # Save the model
+        print("Saving the model...")
         os.makedirs('./bin', exist_ok=True)
         suggestor.save(args.model_filename)
-
-        print("Stage 3: PERFORM SAMPLE INFERENCE")
     else:
-        # Load the model
+        print("Loading the model...")
         suggestor.load(args.model_filename)
 
+    print("Performing inference...")
     if args.user_id:
         most_recent_locations = np.array(
                 [location_json_to_list(location_json)['data']['locations']
@@ -87,9 +113,8 @@ if __name__ == "__main__":
             description='Performs training based on the data in the specified csv.'
         )
     # Important args
-    parser.add_argument('--mapping_filename', default='./data/classes.csv')
     parser.add_argument('--train_data_manifest', default='./data/generated/master.csv')
-    parser.add_argument('--train', type=str2bool, default=True)
+    parser.add_argument('--train', type=bool, default=True)
     # Optional args
     parser.add_argument('--model_filename', default='./bin/dest_suggestor.pkl')
     parser.add_argument('--user_id', default='653bfedf1e7c5a2367365f16')
