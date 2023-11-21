@@ -1,5 +1,12 @@
 query ($user_id: String!) {
     locations (user_id: $user_id) {
+        _id
+        name {
+            street
+            city
+            address
+            postal
+        }
         location {
             latitude
             longitude
