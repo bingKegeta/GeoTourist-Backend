@@ -56,7 +56,7 @@ class DestinationSuggestor:
         return ([location_quad.flatten() for location_quad in sampled], labels)
 
     def train(self, train_input: List[List[float]], train_labels: List[float]) -> None:
-        self.model = RandomForestClassifier()
+        self.model = RandomForestClassifier(n_estimators=200)
         self.model.fit(train_input, train_labels)
 
     def infer(self, past_4_destinations: pd.DataFrame) -> str:
