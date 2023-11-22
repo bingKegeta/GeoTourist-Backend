@@ -10,7 +10,7 @@ from geopy.geocoders import Nominatim
 
 ONEHOT_MAPPING = {
     'Trewartha' : ['Ar', 'Am', 'Aw', 'Cf', 'Cs', 'Cw', 'Cr', 'Do', 'Dc', 'Eo', 'Ec', 'Ft', 'Fi', 'BW', 'BS'], # Wet to dry ~ Related by extremity of climate
-    'ClimateZone' : ['Subtropical Monsoon', 'Tropical Wet', 'Tropical Wet-And-Dry', 'Subtropical Humid', 'Subtropical Dry', 'Temperate Continental', 'Temperate Oceanic', 'Boreal, Continental Subarctic', 'Steppe or Semiarid', 'Tundra', 'Desert or Arid',], # Wet to dry ~ Related by extremity of climate
+    'ClimateZone' : ['Subtropical Monsoon', 'Tropical Wet', 'Tropical Wet-And-Dry', 'Subtropical Humid', 'Subtropical Dry', 'Temperate Continental', 'Temperate Oceanic', 'Boreal, Continental Subarctic', 'Boreal, Maritime Subarctic', 'Steppe or Semiarid', 'Tundra', 'Desert or Arid', 'Ice Cap'], # Wet to dry ~ Related by extremity of climate
 }
 
 
@@ -214,7 +214,7 @@ def fabricate_dataset(user_id: str, possible_locations: str, train_data_manifest
     df.to_csv(train_data_manifest, index=False)
 
 def main(args):
-    print("Stage 0: FABRICATE DATASET")
+    print("Beginning dataset fabrication process...")
 
     # Make a random user for dataset creation
     user_id = make_graphql_request(
@@ -233,7 +233,7 @@ def main(args):
     
     print("Beginning final fabrication phase.")
     # Create the master train_data_manifest file
-    fabricate_dataset(user_id, args.possible_locations, args.train_data_manifest, size=100)
+    fabricate_dataset(user_id, args.possible_locations, args.train_data_manifest, size=500)
 
     print("Dataset fabricated!")
 

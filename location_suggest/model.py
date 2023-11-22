@@ -8,8 +8,7 @@ import pickle
 import random
 import requests
 from sklearn.ensemble import RandomForestClassifier
-import str2bool
-from dataset import make_graphql_request, location_json_to_list, encode, decode
+from dataset import make_graphql_request, location_json_to_list, encode
 
 class DestinationSuggestor:
     model: Optional[RandomForestClassifier]
@@ -37,8 +36,8 @@ class DestinationSuggestor:
                     current_sample.append(random.choice(location_feature_list))
                 random.shuffle(current_sample)
                 sampled.append(np.array(current_sample))
-                print(sampled)
                 labels.append(np.argmax(np.bincount(np.array(sampled[-1][:,class_col_idx], dtype=np.int32))))
+                sampled[-1] = np.array([[feature for idx, feature in enumerate(feature_set) if idx != class_col_idx] for feature_set in sampled[-1]])
         return (sampled, labels)
     
     def prep_data(self, train_data_manifest_filename: str) -> Tuple[List[List[float]], List[float]]:
@@ -60,16 +59,18 @@ class DestinationSuggestor:
         self.model = RandomForestClassifier()
         self.model.fit(train_input, train_labels)
 
-    def encode_4_destinations(self, destinations: List[List[Any]]) -> np.array:
-        return [location_json_to_list(destination) for destination in destinations]
-    
-    def infer(self, past_4_destinations: List[List[Any]]) -> str:
+    def infer(self, past_4_destinations: pd.DataFrame) -> str:
+        for feature in past_4_destinations.columns:
+            if feature in ['Trewartha', 'ClimateZone']:
+                past_4_destinations[feature] = encode(past_4_destinations, feature)[feature].astype(float)
+            else:
+                past_4_destinations[feature] = past_4_destinations[feature].astype(float)
+
         if self.model:
-            encoded_prediction = self.model.predict(self.encode_4_destinations(past_4_destinations))
+            encoded_prediction = self.model.predict([past_4_destinations.to_numpy().flatten()])[0]
         else:
             raise RuntimeError("Tried to infer while DestinationSuggestor model was not trained or loaded.")
         
-        # Return a json of the recommended locations
         return self.onehot_mapping[encoded_prediction]
 
     def save(self, filename: str) -> None:
@@ -99,11 +100,20 @@ def main(args):
 
     print("Performing inference...")
     if args.user_id:
-        most_recent_locations = np.array(
-                [location_json_to_list(location_json)['data']['locations']
-                 for location_json in make_graphql_request("./gql/locations.graphql", {'user_id': args.user_id})[-4:]]
-            )
-        return suggestor.infer(most_recent_locations)
+        most_recent_locations = np.array([location_json_to_list(location_json) for location_json in make_graphql_request("./gql/locations.graphql", {'user_id': args.user_id})['data']['locations'][-4:]])
+        most_recent_locations_df = pd.DataFrame(
+            {
+                'Latitude' : most_recent_locations[:,0],
+                'Longitude' : most_recent_locations[:,1],
+                'Elevation' : most_recent_locations[:,2],
+                'AverageTemperature' : most_recent_locations[:,3],
+                'Trewartha' : most_recent_locations[:,4],
+                'ClimateZone' : most_recent_locations[:,5],
+            }
+        )
+        inference = suggestor.infer(most_recent_locations_df)
+        print(inference)
+        return {"Prediction": inference}
     else:
         return {"Error": "No user_id provided to utilize for inference."}
 
@@ -117,6 +127,6 @@ if __name__ == "__main__":
     parser.add_argument('--train', type=bool, default=True)
     # Optional args
     parser.add_argument('--model_filename', default='./bin/dest_suggestor.pkl')
-    parser.add_argument('--user_id', default='653bfedf1e7c5a2367365f16')
+    parser.add_argument('--user_id', default='655ac183d1028e5e0b01c52b')
     args = parser.parse_args()
     main(args)
