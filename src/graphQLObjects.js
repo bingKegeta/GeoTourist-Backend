@@ -34,6 +34,21 @@ export const LocationType = new GraphQLObjectType({
   }),
 });
 
+export const RecommendedLocationType = new GraphQLObjectType({
+  name: "RecommendedLocation",
+  description: "This represents a recommended location for the user",
+  fields: () => ({
+    Rank: { type: GraphQLInt },
+    location: { type: PointType },
+    city: { type: GraphQLString },
+    country: { type: GraphQLString },
+    elevation: { type: GraphQLInt },
+    avg_temp: { type: GraphQLFloat },
+    trewartha: { type: GraphQLString },
+    climate_zone: { type: GraphQLString },
+  }),
+});
+
 export const PointType = new GraphQLObjectType({
   name: "Coordinate",
   description: "This represents a single Coordinate",

@@ -1,5 +1,6 @@
 import axios from "axios";
 import "./loadenv.js";
+import { exec, spawn } from 'child_process';
 
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const weatherURL = process.env.WEATHER_API_URI;
@@ -98,3 +99,36 @@ export const getClimate = async (latitude, longitude) => {
     throw new Error("Failed to retrieve climate data");
   }
 };
+
+export const recommendLocs = async (user_id, num_recommendations) => {
+  let locationsArr = [];
+  const pythonProcess = spawn('python3', ['./location-suggest/random-forest/model.py', '--user_id', user_id, '--num_recommendations', num_recommendations]);
+  let pythonOutput = '';
+
+  // Collect Python output
+  pythonProcess.stdout.on('data', (data) => {
+      pythonOutput += data.toString();
+      console.log(data);
+  });
+  
+  // Handle Python process termination
+  pythonProcess.on('close', (code) => {
+      console.log(`Python process exited with code ${code}`);
+      // Parse the collected output as JSON (assuming the Python script prints a JSON string)
+      let jsonResponse;
+      try {
+          jsonResponse = JSON.parse(pythonOutput);
+      } catch (error) {
+          console.error('Error parsing JSON:', error.message);
+          jsonResponse = { error: 'Failed to parse JSON output from Python script' };
+      }
+      if ("Prediction" in jsonResponse) {
+          locationsArr = jsonResponse["Prediction"];
+      }
+      else {
+          console.log(jsonResponse);
+      }
+      return locationsArr;
+    });
+    return locationsArr;
+}

@@ -1,5 +1,0 @@
-mutation ($_id: String!) {
-  deleteLocation(
-    _id: $_id
-  )
-}
