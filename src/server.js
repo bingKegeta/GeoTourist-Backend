@@ -8,6 +8,7 @@ import {
     GraphQLNonNull,
     GraphQLList,
     GraphQLFloat,
+    GraphQLInt,
 } from 'graphql';
 import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation, UpdateLocation } from './locations.js';
 import { UserType, LocationType, LocationUpdateInputType, LocationNameType, LocationNameInputType } from './graphQLObjects.js';
@@ -66,7 +67,16 @@ const RootQueryType = new GraphQLObjectType({
                 name: { type: GraphQLString }
             },
             resolve: (parent, args) => QueryLocationsByName(args.user_id, args.name)
-        }
+        },
+        // recommendedLocations: {
+        //     type: new GraphQLList(LocationType),
+        //     description: 'Returns a list of num_recommendations number of recommended locations for the user specified by user_id',
+        //     args: {
+        //         user_id: { type: GraphQLNonNull(GraphQLString) },
+        //         num_recommendations: { type: GraphQLInt }
+        //     },
+        //     resolve: (parent, args) => RecommendLocations(args.user_id, args.num_recommendations)
+        // },
     })
 });
 

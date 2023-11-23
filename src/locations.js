@@ -170,3 +170,23 @@ export const DeleteLocation = async (_id) => {
         return location;
     }
 }
+
+// export const RecommendLocations = async (user_id, num_recommendations) => {
+//     $.ajax({
+//         type: "POST",
+//         url: "/location-suggest/random-forest/model.py",
+//         data: {
+//             "--user_id": user_id,
+//             "--num_recommendations" : num_recommendations
+//         }
+//     }).then((res) => {
+//         json_result = res.json();
+//         if ("Prediction" in json_result) {
+//             locationsArr = res["Prediction"];
+//         }
+//         else {
+//             console.log(json_result);
+//         }
+//     });
+//     return locationsArr;
+// }

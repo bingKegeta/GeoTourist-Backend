@@ -1,4 +1,4 @@
-from typing import Any, List, Tuple, Optional
+from typing import Dict, Any, List, Tuple, Optional
 
 import argparse
 import numpy as np
@@ -54,20 +54,21 @@ class DestinationSuggestor:
         
         sampled, labels = self._sample_4_destinations(df.to_numpy(), df.columns.get_loc('Class'))
         return ([location_quad.flatten() for location_quad in sampled], labels)
-
+    
+    def retrieve_classes(self, train_data_manifest_filename: str) -> None:
+        df = pd.read_csv(train_data_manifest_filename)
+        self.onehot_mapping = list(set(df['Class'].to_list()))
+        
     def train(self, train_input: List[List[float]], train_labels: List[float]) -> None:
         self.model = RandomForestClassifier(n_estimators=200)
         self.model.fit(train_input, train_labels)
 
-    def infer(self, past_4_destinations: pd.DataFrame) -> str:
-        for feature in past_4_destinations.columns:
-            if feature in ['Trewartha', 'ClimateZone']:
-                past_4_destinations[feature] = encode(past_4_destinations, feature)[feature].astype(float)
-            else:
-                past_4_destinations[feature] = past_4_destinations[feature].astype(float)
+    def infer(self, encoded_past_4_destinations: pd.DataFrame) -> str:
+        for feature in encoded_past_4_destinations.columns:
+            encoded_past_4_destinations[feature] = encoded_past_4_destinations[feature].astype(float)
 
         if self.model:
-            encoded_prediction = self.model.predict([past_4_destinations.to_numpy().flatten()])[0]
+            encoded_prediction = self.model.predict([encoded_past_4_destinations.to_numpy().flatten()])[0]
         else:
             raise RuntimeError("Tried to infer while DestinationSuggestor model was not trained or loaded.")
         
@@ -83,7 +84,6 @@ class DestinationSuggestor:
             self.model = pickle.load(modelfile)
             modelfile.close()
 
-
 def main(args):
     suggestor = DestinationSuggestor()
 
@@ -97,23 +97,48 @@ def main(args):
     else:
         print("Loading the model...")
         suggestor.load(args.model_filename)
+        suggestor.retrieve_classes(args.train_data_manifest)
 
     print("Performing inference...")
+    classes_df = pd.read_csv(args.classes_filename)
+    class_locations = { row['City'] + ", " + row['Country'] : { key : val for key, val in row.items() } for _, row in classes_df.iterrows() }
+    class_location_list = [class_locations[key] for key in class_locations]
+
     if args.user_id:
-        most_recent_locations = np.array([location_json_to_list(location_json) for location_json in make_graphql_request("./gql/locations.graphql", {'user_id': args.user_id})['data']['locations'][-4:]])
-        most_recent_locations_df = pd.DataFrame(
-            {
-                'Latitude' : most_recent_locations[:,0],
-                'Longitude' : most_recent_locations[:,1],
-                'Elevation' : most_recent_locations[:,2],
-                'AverageTemperature' : most_recent_locations[:,3],
-                'Trewartha' : most_recent_locations[:,4],
-                'ClimateZone' : most_recent_locations[:,5],
-            }
-        )
-        inference = suggestor.infer(most_recent_locations_df)
-        print(inference)
-        return {"Prediction": inference}
+        all_inferences = []
+        all_locations_to_choose_from = make_graphql_request("./gql/locations.graphql", {'user_id': args.user_id})['data']['locations']
+        if len(all_locations_to_choose_from) < 4:
+            all_locations_to_choose_from.insert(0, random.choices(class_location_list, weights=[idx + 1 for idx, _ in enumerate(class_location_list[::-1])], k=1)[0])
+        for _ in range(args.num_recommendations):
+            most_recent_locations = np.array(
+                    [
+                        location_json_to_list(location_json) for location_json
+                          in random.choices(
+                                all_locations_to_choose_from,
+                                weights=[idx + 1 for idx, _ in enumerate(all_locations_to_choose_from)],
+                                k=4
+                              )
+                    ]
+                )
+            most_recent_locations_df = pd.DataFrame(
+                {
+                    'Latitude' : most_recent_locations[:,0],
+                    'Longitude' : most_recent_locations[:,1],
+                    'Elevation' : most_recent_locations[:,2],
+                    'AverageTemperature' : most_recent_locations[:,3],
+                    'Trewartha' : most_recent_locations[:,4],
+                    'ClimateZone' : most_recent_locations[:,5],
+                }
+            )
+            for feature in ['Trewartha', 'ClimateZone']:
+                most_recent_locations_df[feature] = encode(most_recent_locations_df, feature).astype(float)
+
+            inference = class_locations[suggestor.infer(most_recent_locations_df)]
+            if inference not in all_inferences:
+                all_inferences.append(inference)
+
+        print({"Prediction": all_inferences})
+        return {"Prediction": all_inferences}
     else:
         return {"Error": "No user_id provided to utilize for inference."}
 
@@ -124,9 +149,11 @@ if __name__ == "__main__":
         )
     # Important args
     parser.add_argument('--train_data_manifest', default='./data/generated/master.csv')
-    parser.add_argument('--train', type=bool, default=True)
+    parser.add_argument('--user_id', default='655ac183d1028e5e0b01c52b')
+    parser.add_argument('--num_recommendations', type=int, default=4)
     # Optional args
     parser.add_argument('--model_filename', default='./bin/dest_suggestor.pkl')
-    parser.add_argument('--user_id', default='655ac183d1028e5e0b01c52b')
+    parser.add_argument('--train', type=bool, default=False)
+    parser.add_argument('--classes_filename', default='./data/classes.csv')
     args = parser.parse_args()
     main(args)
