@@ -172,6 +172,13 @@ export const DeleteLocation = async (_id) => {
 }
 
 export const RecommendLocations = async (user_id, num_recommendations) => {
-    const res = await recommendLocs(user_id, num_recommendations);
-    return res;
+    try {
+        const res = await recommendLocs(user_id, num_recommendations);
+        console.log(res)
+        return res;
+    }
+    catch (err) {
+        console.error(err);
+    }
+    return [];
 }

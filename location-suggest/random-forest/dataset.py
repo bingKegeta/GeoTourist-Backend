@@ -3,6 +3,7 @@ import requests
 import argparse
 import pandas as pd
 import numpy as np
+import os
 import sklearn.neighbors
 import random
 from geopy.exc import GeocoderTimedOut
@@ -12,16 +13,17 @@ ONEHOT_MAPPING = {
     'Trewartha' : ['Ar', 'Am', 'Aw', 'Cf', 'Cs', 'Cw', 'Cr', 'Do', 'Dc', 'Eo', 'Ec', 'Ft', 'Fi', 'BW', 'BS'], # Wet to dry ~ Related by extremity of climate
     'ClimateZone' : ['Subtropical Monsoon', 'Tropical Wet', 'Tropical Wet-And-Dry', 'Subtropical Humid', 'Subtropical Dry', 'Temperate Continental', 'Temperate Oceanic', 'Boreal, Continental Subarctic', 'Boreal, Maritime Subarctic', 'Steppe or Semiarid', 'Tundra', 'Desert or Arid', 'Ice Cap'], # Wet to dry ~ Related by extremity of climate
 }
+GQL_DIR = "./location-suggest/random-forest/gql"
 
 
-def make_graphql_request(query_filename: str = "./gql/users.graphql", variables: Dict[str, Any] = {}) -> Dict[str, Any]:
+def make_graphql_request(gql_dir: str = GQL_DIR, query_filename: str = "users.graphql", variables: Dict[str, Any] = {}) -> Dict[str, Any]:
     """
     Send a Query or Mutate request to GraphQL and get a response.
     Sample uses:
     >>>print(make_graphql_request()['data'])
-    >>>print(make_graphql_request("./gql/locations.graphql", {'user_id': USER_IDS})['data'])
+    >>>print(make_graphql_request("./gql", "locations.graphql", {'user_id': USER_IDS})['data'])
     """
-    with open(query_filename) as gql_query:
+    with open(os.path.join(gql_dir, query_filename)) as gql_query:
         query = gql_query.read()
         gql_query.close()
     result = requests.post("http://localhost:5000/api", json={'query': query , 'variables': variables}).json()
@@ -53,7 +55,8 @@ def add_random_locations(user_id: str, k: int) -> None:
     for i in range(k):
         try:
             result = make_graphql_request(
-                        "./gql/addLocations.graphql",
+                        GQL_DIR,
+                        "addLocations.graphql",
                         {
                             'user_id': user_id,
                             'name': {
@@ -77,7 +80,7 @@ def query_location_data(user_id: str) -> List[Dict[str, Any]]:
     Grab all location data for all locations held by the user
     with the given user_id.
     """
-    return make_graphql_request("./gql/locations.graphql", {'user_id': user_id})['data']['locations']
+    return make_graphql_request(GQL_DIR, "locations.graphql", {'user_id': user_id})['data']['locations']
 
 def set_class_data(user_id: str, possible_locations: str) -> None:
     """
@@ -103,7 +106,8 @@ def set_class_data(user_id: str, possible_locations: str) -> None:
     for idx, row in df.iterrows():
         try:
             make_graphql_request(
-                    "./gql/addLocations.graphql",
+                    GQL_DIR,
+                    "addLocations.graphql",
                     {
                         'user_id': user_id,
                         'name': {
@@ -118,9 +122,9 @@ def set_class_data(user_id: str, possible_locations: str) -> None:
                         'longitude': row['Longitude']
                     }
                 )
-            added_location = make_graphql_request("./gql/locations.graphql", {'user_id': user_id})['data']['locations'][0]
+            added_location = make_graphql_request(GQL_DIR, "locations.graphql", {'user_id': user_id})['data']['locations'][0]
             location_features.append(location_json_to_list(added_location))
-            make_graphql_request("./gql/deleteLocation.graphql", { '_id': added_location['_id'] })
+            make_graphql_request(GQL_DIR, "deleteLocation.graphql", { '_id': added_location['_id'] })
             print(f"Row added successfully: {added_location}")
         except Exception as e:
             print(e)
@@ -218,7 +222,8 @@ def main(args):
 
     # Make a random user for dataset creation
     user_id = make_graphql_request(
-            "./gql/addUser.graphql",
+            GQL_DIR,
+            "addUser.graphql",
             {
                 'email' : "x" + str(random.random() * random.random()) + "@gmail.com",
                 'username' : "x" + str(random.random() * random.random()),

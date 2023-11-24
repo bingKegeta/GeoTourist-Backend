@@ -38,7 +38,7 @@ export const RecommendedLocationType = new GraphQLObjectType({
   name: "RecommendedLocation",
   description: "This represents a recommended location for the user",
   fields: () => ({
-    Rank: { type: GraphQLInt },
+    rank: { type: GraphQLInt },
     location: { type: PointType },
     city: { type: GraphQLString },
     country: { type: GraphQLString },

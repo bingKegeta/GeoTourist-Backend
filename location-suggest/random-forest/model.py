@@ -105,7 +105,7 @@ def main(args):
 
     if args.user_id:
         all_inferences = []
-        all_locations_to_choose_from = make_graphql_request("./gql/locations.graphql", {'user_id': args.user_id})['data']['locations']
+        all_locations_to_choose_from = make_graphql_request(query_filename="locations.graphql", variables={'user_id': args.user_id})['data']['locations']
         if len(all_locations_to_choose_from) < 4:
             all_locations_to_choose_from.insert(0, random.choices(class_location_list, weights=[idx + 1 for idx, _ in enumerate(class_location_list[::-1])], k=1)[0])
         for _ in range(args.num_recommendations):
@@ -136,7 +136,7 @@ def main(args):
             if inference not in all_inferences:
                 all_inferences.append(inference)
 
-        print({"Prediction": all_inferences})
+        print(str({"Prediction": all_inferences}).replace("'", '"'))
         return {"Prediction": all_inferences}
     else:
         return {"Error": "No user_id provided to utilize for inference."}

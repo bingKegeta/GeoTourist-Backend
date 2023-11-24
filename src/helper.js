@@ -100,35 +100,71 @@ export const getClimate = async (latitude, longitude) => {
   }
 };
 
-export const recommendLocs = async (user_id, num_recommendations) => {
-  let locationsArr = [];
-  const pythonProcess = spawn('python3', ['./location-suggest/random-forest/model.py', '--user_id', user_id, '--num_recommendations', num_recommendations]);
-  let pythonOutput = '';
+export const mapRecommendedLocationMongoToGraphQL = (query) => {
+  return query.map((item) => {
+    return {
+      rank: item.Rank,
+      location: {
+        latitude: item.Latitude, // Latitude at 1
+        longitude: item.Longitude, // Longitude at 0
+      },
+      city: item.City,
+      country: item.Country,
+      elevation: item.Elevation,
+      avg_temp: item.AverageTemperature,
+      trewartha: item.Trewartha,
+      climate_zone: item.ClimateZone,
+    };
+  });
+};
 
-  // Collect Python output
-  pythonProcess.stdout.on('data', (data) => {
+export const recommendLocs = async (user_id, num_recommendations) => {
+  return new Promise((resolve, reject) => {
+    let locationsArr = [];
+    const pythonProcess = spawn(
+        'python3',
+        [
+          './location-suggest/random-forest/model.py',
+          '--user_id', user_id,
+          '--num_recommendations', num_recommendations,
+          '--model_filename', './location-suggest/random-forest/bin/dest_suggestor.pkl',
+          '--train_data_manifest', './location-suggest/random-forest/data/generated/master.csv',
+          '--classes_filename', './location-suggest/random-forest/data/classes.csv'
+        ]
+      );
+    let pythonOutput = '';
+
+    // Collect Python output
+    pythonProcess.stdout.on('data', (data) => {
       pythonOutput += data.toString();
       console.log(data);
-  });
-  
-  // Handle Python process termination
-  pythonProcess.on('close', (code) => {
+    });
+
+    // Handle Python process termination
+    pythonProcess.on('close', (code) => {
       console.log(`Python process exited with code ${code}`);
       // Parse the collected output as JSON (assuming the Python script prints a JSON string)
       let jsonResponse;
       try {
-          jsonResponse = JSON.parse(pythonOutput);
+        jsonResponse = JSON.parse(pythonOutput);
       } catch (error) {
-          console.error('Error parsing JSON:', error.message);
-          jsonResponse = { error: 'Failed to parse JSON output from Python script' };
+        console.error('Error parsing JSON:', error.message, pythonOutput);
+        jsonResponse = { error: 'Failed to parse JSON output from Python script' };
       }
       if ("Prediction" in jsonResponse) {
-          locationsArr = jsonResponse["Prediction"];
+        locationsArr = mapRecommendedLocationMongoToGraphQL(jsonResponse["Prediction"]);
+        resolve(locationsArr);
+      } else {
+        console.log(jsonResponse);
+        reject(new Error('Error in Python script response'));
       }
-      else {
-          console.log(jsonResponse);
-      }
-      return locationsArr;
+    });
+
+    // Handle errors from the Python script
+    pythonProcess.stderr.on('data', (data) => {
+      console.error(`Error from Python script: ${data}`);
+      reject(new Error('Internal server error'));
     });
     return locationsArr;
+  });
 }
