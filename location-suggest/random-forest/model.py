@@ -57,6 +57,18 @@ class DestinationSuggestor:
     def retrieve_classes(self, train_data_manifest_filename: str) -> None:
         df = pd.read_csv(train_data_manifest_filename)
         self.onehot_mapping = list(set(df['Class'].to_list()))
+
+    def classes_json_to_location_json(self, classes_json: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            'location' : {
+                'latitude' : classes_json['Latitude'],
+                'longitude' : classes_json['Longitude'],
+            },
+            'elevation' : classes_json['Elevation'],
+            'avg_temp' : classes_json['AverageTemperature'],
+            'trewartha' : classes_json['Trewartha'],
+            'climate_zone' : classes_json['ClimateZone'],
+        }
         
     def train(self, train_input: List[List[float]], train_labels: List[float]) -> None:
         self.model = RandomForestClassifier(n_estimators=200)
@@ -107,7 +119,7 @@ def main(args):
         all_inferences = []
         all_locations_to_choose_from = make_graphql_request(query_filename="locations.graphql", variables={'user_id': args.user_id})['data']['locations']
         if len(all_locations_to_choose_from) < 4:
-            all_locations_to_choose_from.insert(0, random.choices(class_location_list, weights=[idx + 1 for idx, _ in enumerate(class_location_list[::-1])], k=1)[0])
+            all_locations_to_choose_from.insert(0, suggestor.classes_json_to_location_json(random.choices(class_location_list, weights=[idx + 1 for idx, _ in enumerate(class_location_list[::-1])], k=1)[0]))
         for _ in range(args.num_recommendations):
             most_recent_locations = np.array(
                     [
