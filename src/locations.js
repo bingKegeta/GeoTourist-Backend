@@ -1,5 +1,5 @@
 import { MongoClient, ObjectId } from 'mongodb';
-import { getAverageTemperature, getClimate, getElevation, getPopulationDensity, mapLocationGraphQLToMongo, mapLocationMongoToGraphQL } from './helper.js';
+import { getAverageTemperature, getClimate, getElevation, getPopulationDensity, mapLocationGraphQLToMongo, mapLocationMongoToGraphQL, recommendLocs } from './helper.js';
 import './loadenv.js';
 
 const uri = process.env.MONGO_URI;
@@ -169,4 +169,16 @@ export const DeleteLocation = async (_id) => {
     } finally {
         return location;
     }
+}
+
+export const RecommendLocations = async (user_id, num_recommendations) => {
+    try {
+        const res = await recommendLocs(user_id, num_recommendations);
+        console.log(res)
+        return res;
+    }
+    catch (err) {
+        console.error(err);
+    }
+    return [];
 }

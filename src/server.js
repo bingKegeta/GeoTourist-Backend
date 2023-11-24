@@ -8,9 +8,10 @@ import {
     GraphQLNonNull,
     GraphQLList,
     GraphQLFloat,
+    GraphQLInt,
 } from 'graphql';
-import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation, UpdateLocation } from './locations.js';
-import { UserType, LocationType, LocationUpdateInputType, LocationNameType, LocationNameInputType } from './graphQLObjects.js';
+import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation, UpdateLocation, RecommendLocations } from './locations.js';
+import { UserType, LocationType, LocationUpdateInputType, LocationNameType, LocationNameInputType, RecommendedLocationType } from './graphQLObjects.js';
 import cors from 'cors';
 
 const app = express();
@@ -66,7 +67,16 @@ const RootQueryType = new GraphQLObjectType({
                 name: { type: GraphQLString }
             },
             resolve: (parent, args) => QueryLocationsByName(args.user_id, args.name)
-        }
+        },
+        recommendedLocations: {
+            type: new GraphQLList(RecommendedLocationType),
+            description: 'Returns a list of num_recommendations number of recommended locations for the user specified by user_id',
+            args: {
+                user_id: { type: GraphQLNonNull(GraphQLString) },
+                num_recommendations: { type: GraphQLInt }
+            },
+            resolve: (parent, args) => RecommendLocations(args.user_id, args.num_recommendations)
+        },
     })
 });
 
