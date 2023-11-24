@@ -118,7 +118,7 @@ def main(args):
     if args.user_id:
         all_inferences = []
         all_locations_to_choose_from = make_graphql_request(query_filename="locations.graphql", variables={'user_id': args.user_id})['data']['locations']
-        if len(all_locations_to_choose_from) < 4:
+        if len(all_locations_to_choose_from) < 5:
             all_locations_to_choose_from.insert(0, suggestor.classes_json_to_location_json(random.choices(class_location_list, weights=[idx + 1 for idx, _ in enumerate(class_location_list[::-1])], k=1)[0]))
         for _ in range(args.num_recommendations):
             most_recent_locations = np.array(
