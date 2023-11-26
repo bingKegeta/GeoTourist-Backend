@@ -71,7 +71,7 @@ export const LocationUpdateInputType = new GraphQLInputObjectType({
   name: "LocationInput",
   description: "This is used for updating a Location",
   fields: () => ({
-    name: { type: GraphQLString },
+    name: { type: LocationNameInputType },
     location: { type: PointInputType },
   }),
 });
