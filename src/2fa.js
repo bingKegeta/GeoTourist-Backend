@@ -41,7 +41,7 @@ async function getRegistrationOptions(req, res) {
     // (Pseudocode) Remember the challenge for this user
     setUserCurrentChallenge(user, options.challenge); // TODO
 
-    return options;
+    res.status(200).json(options);
 }
 
 async function verifyAndSaveRegistration(req, res) {
@@ -91,7 +91,7 @@ async function verifyAndSaveRegistration(req, res) {
         saveNewUserAuthenticatorInDB(user, newAuthenticator); // TODO
     }
 
-    return { verified };
+    res.status(200).json({ verified });
 }
 
 async function getAuthenticationOptions(req, res) {
@@ -115,7 +115,7 @@ async function getAuthenticationOptions(req, res) {
     // (Pseudocode) Remember this challenge for this user
     setUserCurrentChallenge(user, options.challenge);
 
-    return options;
+    res.status(200).json(options);
 }
 
 async function verifyAuthentication(req, res) {
@@ -144,7 +144,7 @@ async function verifyAuthentication(req, res) {
         });
     } catch (error) {
         console.error(error);
-        return res.status(400).send({ error: error.message });
+        return res.status(400).json({ error: error.message });
     }
 
     const { verified } = verification;
@@ -155,5 +155,12 @@ async function verifyAuthentication(req, res) {
         saveUpdatedAuthenticatorCounter(authenticator, newCounter);
     }
 
-    return { verified };
+    res.status(200).json({ verified });
+}
+
+export {
+    getRegistrationOptions,
+    getAuthenticationOptions,
+    verifyAndSaveRegistration,
+    verifyAuthentication
 }
