@@ -1,6 +1,6 @@
 import axios from "axios";
 import "./loadenv.js";
-import { exec, spawn } from 'child_process';
+import { exec, spawn } from "child_process";
 
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const weatherURL = process.env.WEATHER_API_URI;
@@ -36,7 +36,14 @@ export const mapLocationMongoToGraphQL = (query) => {
 // takes a single location in graphql and turns it into mongo
 export const mapLocationGraphQLToMongo = (input) => {
   return {
-    name: input.name,
+    name: {
+      display: input.name.display,
+      street: input.name.street,
+      city: input.name.city,
+      country: input.name.country,
+      address: input.name.address,
+      postal: input.name.postal,
+    },
     location: {
       type: "Point",
       coordinates: [input.location.longitude, input.location.latitude],
@@ -121,50 +128,56 @@ export const mapRecommendedLocationMongoToGraphQL = (query) => {
 export const recommendLocs = async (user_id, num_recommendations) => {
   return new Promise((resolve, reject) => {
     let locationsArr = [];
-    const pythonProcess = spawn(
-        'python3',
-        [
-          './location-suggest/random-forest/model.py',
-          '--user_id', user_id,
-          '--num_recommendations', num_recommendations,
-          '--model_filename', './location-suggest/random-forest/bin/dest_suggestor.pkl',
-          '--train_data_manifest', './location-suggest/random-forest/data/generated/master.csv',
-          '--classes_filename', './location-suggest/random-forest/data/classes.csv'
-        ]
-      );
-    let pythonOutput = '';
+    const pythonProcess = spawn("python3", [
+      "./location-suggest/random-forest/model.py",
+      "--user_id",
+      user_id,
+      "--num_recommendations",
+      num_recommendations,
+      "--model_filename",
+      "./location-suggest/random-forest/bin/dest_suggestor.pkl",
+      "--train_data_manifest",
+      "./location-suggest/random-forest/data/generated/master.csv",
+      "--classes_filename",
+      "./location-suggest/random-forest/data/classes.csv",
+    ]);
+    let pythonOutput = "";
 
     // Collect Python output
-    pythonProcess.stdout.on('data', (data) => {
+    pythonProcess.stdout.on("data", (data) => {
       pythonOutput += data.toString();
       console.log(data);
     });
 
     // Handle Python process termination
-    pythonProcess.on('close', (code) => {
+    pythonProcess.on("close", (code) => {
       console.log(`Python process exited with code ${code}`);
       // Parse the collected output as JSON (assuming the Python script prints a JSON string)
       let jsonResponse;
       try {
         jsonResponse = JSON.parse(pythonOutput);
       } catch (error) {
-        console.error('Error parsing JSON:', error.message, pythonOutput);
-        jsonResponse = { error: 'Failed to parse JSON output from Python script' };
+        console.error("Error parsing JSON:", error.message, pythonOutput);
+        jsonResponse = {
+          error: "Failed to parse JSON output from Python script",
+        };
       }
       if ("Prediction" in jsonResponse) {
-        locationsArr = mapRecommendedLocationMongoToGraphQL(jsonResponse["Prediction"]);
+        locationsArr = mapRecommendedLocationMongoToGraphQL(
+          jsonResponse["Prediction"]
+        );
         resolve(locationsArr);
       } else {
         console.log(jsonResponse);
-        reject(new Error('Error in Python script response'));
+        reject(new Error("Error in Python script response"));
       }
     });
 
     // Handle errors from the Python script
-    pythonProcess.stderr.on('data', (data) => {
+    pythonProcess.stderr.on("data", (data) => {
       console.error(`Error from Python script: ${data}`);
-      reject(new Error('Internal server error'));
+      reject(new Error("Internal server error"));
     });
     return locationsArr;
   });
-}
+};
