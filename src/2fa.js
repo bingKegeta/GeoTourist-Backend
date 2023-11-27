@@ -1,19 +1,41 @@
 import {
     generateRegistrationOptions,
     verifyRegistrationResponse,
+    generateAuthenticationOptions,
+    verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 
 const rpName = 'TourFusion';
 const rpID = 'tour-fusion.com';
 const origin = `https://${rpID}`;
 
+function getUserFromDB(loggedInUserID) {
+
+}
+
+function getUserAuthenticators(user) {
+
+}
+
+function getUserAuthenticator(user, id) {
+    
+}
+
+function setUserCurrentChallenge(user, challenge) {
+
+}
+
+function getUserCurrentChallenge(user) {
+
+}
+
+function saveNewUserAuthenticatorInDB(user, newAuthenticator) {
+
+}
+
 async function getRegistrationOptions(req, res) {
-    // (Pseudocode) Retrieve the user from the database
-    // after they've logged in
-    const user = getUserFromDB(loggedInUserId); // TODO
-    // (Pseudocode) Retrieve any of the user's previously-
-    // registered authenticators
-    const userAuthenticators = getUserAuthenticators(user); // TODO
+    const user = getUserFromDB(loggedInUserId);
+    const userAuthenticators = getUserAuthenticators(user);
 
     const options = await generateRegistrationOptions({
         rpName,
@@ -25,15 +47,11 @@ async function getRegistrationOptions(req, res) {
         excludeCredentials: userAuthenticators.map(authenticator => ({
             id: authenticator.credentialID,
             type: 'public-key',
-            // Optional
             // transports: authenticator.transports,
         })),
-        // See "Guiding use of authenticators via authenticatorSelection" below
         authenticatorSelection: {
-            // Defaults
             residentKey: 'preferred',
             userVerification: 'discouraged',
-            // Optional
             authenticatorAttachment: 'platform',
         },
     });
@@ -47,10 +65,8 @@ async function getRegistrationOptions(req, res) {
 async function verifyAndSaveRegistration(req, res) {
     const { body } = req;
 
-    // (Pseudocode) Retrieve the logged-in user
-    const user = getUserFromDB(loggedInUserId); // TODO
-    // (Pseudocode) Get `options.challenge` that was saved above
-    const expectedChallenge = getUserCurrentChallenge(user); // TODO
+    const user = getUserFromDB(loggedInUserId);
+    const expectedChallenge = getUserCurrentChallenge(user);
 
     let verification;
     try {
@@ -86,19 +102,14 @@ async function verifyAndSaveRegistration(req, res) {
             transports,
         };
 
-        // (Pseudocode) Save the authenticator info so that we can
-        // get it by user ID later
-        saveNewUserAuthenticatorInDB(user, newAuthenticator); // TODO
+        saveNewUserAuthenticatorInDB(user, newAuthenticator);
     }
 
     res.status(200).json({ verified });
 }
 
 async function getAuthenticationOptions(req, res) {
-    // (Pseudocode) Retrieve the logged-in user
     const user = getUserFromDB(loggedInUserId); // TODO
-    // (Pseudocode) Retrieve any of the user's previously-
-    // registered authenticators
     const userAuthenticators  = getUserAuthenticators(user);
 
     const options = await generateAuthenticationOptions({
@@ -112,21 +123,15 @@ async function getAuthenticationOptions(req, res) {
         userVerification: 'preferred',
     });
 
-    // (Pseudocode) Remember this challenge for this user
     setUserCurrentChallenge(user, options.challenge);
-
     res.status(200).json(options);
 }
 
 async function verifyAuthentication(req, res) {
     const { body } = req;
 
-    // (Pseudocode) Retrieve the logged-in user
     const user = getUserFromDB(loggedInUserId);
-    // (Pseudocode) Get `options.challenge` that was saved above
     const expectedChallenge = getUserCurrentChallenge(user);
-    // (Pseudocode} Retrieve an authenticator from the DB that
-    // should match the `id` in the returned credential
     const authenticator = getUserAuthenticator(user, body.id);
 
     if (!authenticator) {
