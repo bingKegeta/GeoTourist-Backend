@@ -5,7 +5,7 @@ import {
     verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import { MongoClient, ObjectId } from 'mongodb';
-import { FindUserByID } from './users';
+import { FindUserByID } from './users.js';
 
 const rpName = 'TourFusion';
 const rpID = 'tour-fusion.com';
@@ -42,7 +42,7 @@ async function getUserAuthenticators(userObj) {
         console.log("Error getting current challenge:", error);
     }
     finally {
-        await client.close();
+        // await client.close();
     }
 }
 
@@ -75,7 +75,7 @@ async function setUserCurrentChallenge(userObj, challenge) {
         console.log("Error adding user:", error);
     }
     finally {
-        await client.close();
+        // await client.close();
     }
 }
 
@@ -94,7 +94,7 @@ async function getUserCurrentChallenge(userObj) {
         console.log("Error getting current challenge:", error);
     }
     finally {
-        await client.close();
+        // await client.close();
     }
 }
 
@@ -135,7 +135,7 @@ async function saveNewUserAuthenticatorInDB(userObj, newAuthenticator) {
         console.log("Error adding user:", error);
     }
     finally {
-        await client.close();
+        // await client.close();
     }
 }
 
@@ -163,7 +163,7 @@ async function saveUpdatedAuthenticatorCounter(userObj, authenticator, newCounte
         console.log("Error adding user:", error);
     }
     finally {
-        await client.close();
+        // await client.close();
     }
 }
 
