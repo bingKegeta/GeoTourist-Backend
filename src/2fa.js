@@ -139,6 +139,34 @@ async function saveNewUserAuthenticatorInDB(userObj, newAuthenticator) {
     }
 }
 
+async function saveUpdatedAuthenticatorCounter(userObj, authenticator, newCounter) {
+    try {
+        let authens = await getUserAuthenticators(userObj);
+        if (authens.length == 0) {
+            throw new Error("Trying to save updated auth counter, but user has no 2FA!")
+        }
+
+        authens.forEach((e, index) => {
+            if (e.credentialID == authenticator.credentialID) {
+                authens[index].counter = newCounter
+            }
+        });
+
+        const db = client.db('geodb');
+        const users = db.collection('multifactor');
+
+        await users.updateOne(
+            { "userId": userObj._id },
+            { "$set": { "authenticators": authens } }
+        );
+    } catch (error) {
+        console.log("Error adding user:", error);
+    }
+    finally {
+        await client.close();
+    }
+}
+
 async function getRegistrationOptions(req, res) {
     const user = await getUserFromDB(req.body.id);
     const userAuthenticators = await getUserAuthenticators(user);
@@ -261,7 +289,7 @@ async function verifyAuthentication(req, res) {
         const { authenticationInfo } = verification;
         const { newCounter } = authenticationInfo;
 
-        saveUpdatedAuthenticatorCounter(user, authenticator, newCounter);
+        await saveUpdatedAuthenticatorCounter(user, authenticator, newCounter);
     }
 
     res.status(200).json({ verified });
