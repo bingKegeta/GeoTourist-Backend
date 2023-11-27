@@ -4,6 +4,7 @@ import argparse
 import pandas as pd
 import numpy as np
 import os
+from dotenv import load_dotenv
 import sklearn.neighbors
 import random
 from geopy.exc import GeocoderTimedOut
@@ -13,7 +14,10 @@ ONEHOT_MAPPING = {
     'Trewartha' : ['Ar', 'Am', 'Aw', 'Cf', 'Cs', 'Cw', 'Cr', 'Do', 'Dc', 'Eo', 'Ec', 'Ft', 'Fi', 'BW', 'BS'], # Wet to dry ~ Related by extremity of climate
     'ClimateZone' : ['Subtropical Monsoon', 'Tropical Wet', 'Tropical Wet-And-Dry', 'Subtropical Humid', 'Subtropical Dry', 'Temperate Continental', 'Temperate Oceanic', 'Boreal, Continental Subarctic', 'Boreal, Maritime Subarctic', 'Steppe or Semiarid', 'Tundra', 'Desert or Arid', 'Ice Cap'], # Wet to dry ~ Related by extremity of climate
 }
+ENV_PATH = "../../.env"
 GQL_DIR = "./location-suggest/random-forest/gql"
+
+load_dotenv(ENV_PATH)
 
 
 def make_graphql_request(gql_dir: str = GQL_DIR, query_filename: str = "users.graphql", variables: Dict[str, Any] = {}) -> Dict[str, Any]:
@@ -26,7 +30,7 @@ def make_graphql_request(gql_dir: str = GQL_DIR, query_filename: str = "users.gr
     with open(os.path.join(gql_dir, query_filename)) as gql_query:
         query = gql_query.read()
         gql_query.close()
-    result = requests.post("https://api.tour-fusion.com/api", json={'query': query , 'variables': variables}).json()
+    result = requests.post(os.getenv('PYTHON_GQL_URI'), json={'query': query , 'variables': variables}).json()
     for key in result['data']:
         if result['data'][key] == "Failure!":
             raise Exception("GraphQL query returned \"Failure!\"")
