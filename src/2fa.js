@@ -27,12 +27,12 @@ async function getUserFromDB(loggedInUserID) {
     return await FindUserByID(loggedInUserID);
 }
 
-async function getUserAuthenticators(userId) {
+async function getUserAuthenticators(userObj) {
     try {
         const db = client.db('geodb');
         const users = db.collection('multifactor');
 
-        const user = await users.findOne({ "userId": userId })
+        const user = await users.findOne({ "userId": userObj._id })
         if (!user) {
             return [];
         } else {
@@ -46,20 +46,20 @@ async function getUserAuthenticators(userId) {
     }
 }
 
-async function getUserAuthenticator(user, id) {
-    const authens = await getUserAuthenticators(user);
+async function getUserAuthenticator(userObj, id) {
+    const authens = await getUserAuthenticators(userObj);
     return authens.find((e) => e.credentialID == id)
 }
 
-async function setUserCurrentChallenge(user, challenge) {
+async function setUserCurrentChallenge(userObj, challenge) {
     try {
         const db = client.db('geodb');
         const users = db.collection('multifactor');
 
-        const coreDocumentExists = await users.findOne({ "userId": user })
+        const coreDocumentExists = await users.findOne({ "userId": userObj._id })
         if (!coreDocumentExists) {
             await users.insertOne({
-                "userId": user,
+                "userId": userObj._id,
                 "authenticators": [],
                 "currentChallenge": challenge
             });
@@ -67,7 +67,7 @@ async function setUserCurrentChallenge(user, challenge) {
             return;
         } else {
             await users.updateOne(
-                { "userId": user },
+                { "userId": userObj._id },
                 { "$set": { "currentChallenge": challenge } }
             )
         }
@@ -79,12 +79,12 @@ async function setUserCurrentChallenge(user, challenge) {
     }
 }
 
-async function getUserCurrentChallenge(userId) {
+async function getUserCurrentChallenge(userObj) {
     try {
         const db = client.db('geodb');
         const users = db.collection('multifactor');
 
-        const user = await users.findOne({ "userId": userId })
+        const user = await users.findOne({ "userId": userObj._id })
         if (!user) {
             return null;
         } else {
@@ -98,15 +98,15 @@ async function getUserCurrentChallenge(userId) {
     }
 }
 
-async function saveNewUserAuthenticatorInDB(user, newAuthenticator) {
+async function saveNewUserAuthenticatorInDB(userObj, newAuthenticator) {
     try {
         const db = client.db('geodb');
         const users = db.collection('multifactor');
 
-        const coreDocumentExists = await users.findOne({ "userId": user })
+        const coreDocumentExists = await users.findOne({ "userId": userObj._id })
         if (!coreDocumentExists) {
             await users.insertOne({
-                "userId": user,
+                "userId": userObj._id,
                 "authenticators": [newAuthenticator],
                 "currentChallenge": ""
             });
@@ -116,7 +116,7 @@ async function saveNewUserAuthenticatorInDB(user, newAuthenticator) {
 
         const exists = await users.findOne({
             $and: [
-                { "userId": user },
+                { "userId": userObj._id },
                 {
                     "authenticators": {
                         '$elemMatch': {
@@ -227,7 +227,7 @@ async function getAuthenticationOptions(req, res) {
         userVerification: 'preferred',
     });
 
-    setUserCurrentChallenge(user, options.challenge);
+    await setUserCurrentChallenge(user, options.challenge);
     res.status(200).json(options);
 }
 
@@ -261,7 +261,7 @@ async function verifyAuthentication(req, res) {
         const { authenticationInfo } = verification;
         const { newCounter } = authenticationInfo;
 
-        saveUpdatedAuthenticatorCounter(authenticator, newCounter);
+        saveUpdatedAuthenticatorCounter(user, authenticator, newCounter);
     }
 
     res.status(200).json({ verified });
