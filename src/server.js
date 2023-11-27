@@ -13,6 +13,7 @@ import {
 import { DeleteLocation, QueryLocations, QueryLocationsByName, addLocation, UpdateLocation, RecommendLocations } from './locations.js';
 import { UserType, LocationType, LocationUpdateInputType, LocationNameType, LocationNameInputType, RecommendedLocationType } from './graphQLObjects.js';
 import cors from 'cors';
+import { getAuthenticationOptions, getRegistrationOptions, verifyAndSaveRegistration, verifyAuthentication } from './2fa.js';
 
 const app = express();
 
@@ -147,5 +148,10 @@ app.use('/api', graphqlHTTP({
     schema,
     graphiql: true
 }));
+
+app.get('/2fa/generate-authentication-options', getAuthenticationOptions)
+app.get('/2fa/generate-registration-options', getRegistrationOptions)
+app.post('/2fa/verify-registration', verifyAndSaveRegistration)
+app.post('/2fa/verify-authentication', verifyAuthentication)
 
 app.listen(80, () => console.log('Server Running'));
