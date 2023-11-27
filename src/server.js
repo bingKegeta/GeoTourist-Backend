@@ -148,4 +148,4 @@ app.use('/api', graphqlHTTP({
     graphiql: true
 }));
 
-app.listen(5000, () => console.log('Server Running'));
+app.listen(80, () => console.log('Server Running'));
