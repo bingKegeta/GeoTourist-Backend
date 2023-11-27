@@ -4,50 +4,156 @@ import {
     generateAuthenticationOptions,
     verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
+import { MongoClient, ObjectId } from 'mongodb';
+import { FindUserByID } from './users';
 
 const rpName = 'TourFusion';
 const rpID = 'tour-fusion.com';
 const origin = `https://${rpID}`;
 
-function getUserFromDB(loggedInUserID) {
+const uri = process.env.MONGO_URI;
+const client = new MongoClient(uri);
 
+// For items in the multifactor collection, the following format is used:
+/*
+{
+    userId: ...,
+    authenticators: [{...}],
+    currentChallenge: "..."
+}
+*/
+
+async function getUserFromDB(loggedInUserID) {
+    return await FindUserByID(loggedInUserID);
 }
 
-function getUserAuthenticators(user) {
+async function getUserAuthenticators(user) {
+    try {
+        const db = client.db('geodb');
+        const users = db.collection('multifactor');
 
+        const user = await users.findOne({ "userId": user })
+        if (!user) {
+            return [];
+        } else {
+            return user.authenticators;
+        }
+    } catch (error) {
+        console.log("Error getting current challenge:", error);
+    }
+    finally {
+        await client.close();
+    }
 }
 
-function getUserAuthenticator(user, id) {
-    
+async function getUserAuthenticator(user, id) {
+    const authens = await getUserAuthenticators(user);
+    return authens.find((e) => e.credentialID == id)
 }
 
-function setUserCurrentChallenge(user, challenge) {
+async function setUserCurrentChallenge(user, challenge) {
+    try {
+        const db = client.db('geodb');
+        const users = db.collection('multifactor');
 
+        const coreDocumentExists = await users.findOne({ "userId": user })
+        if (!coreDocumentExists) {
+            await users.insertOne({
+                "userId": user,
+                "authenticators": [],
+                "currentChallenge": challenge
+            });
+
+            return;
+        } else {
+            await users.updateOne(
+                { "userId": user },
+                { "$set": { "currentChallenge": challenge } }
+            )
+        }
+    } catch (error) {
+        console.log("Error adding user:", error);
+    }
+    finally {
+        await client.close();
+    }
 }
 
-function getUserCurrentChallenge(user) {
+async function getUserCurrentChallenge(user) {
+    try {
+        const db = client.db('geodb');
+        const users = db.collection('multifactor');
 
+        const user = await users.findOne({ "userId": user })
+        if (!user) {
+            return null;
+        } else {
+            return user.currentChallenge;
+        }
+    } catch (error) {
+        console.log("Error getting current challenge:", error);
+    }
+    finally {
+        await client.close();
+    }
 }
 
-function saveNewUserAuthenticatorInDB(user, newAuthenticator) {
+async function saveNewUserAuthenticatorInDB(user, newAuthenticator) {
+    try {
+        const db = client.db('geodb');
+        const users = db.collection('multifactor');
 
+        const coreDocumentExists = await users.findOne({ "userId": user })
+        if (!coreDocumentExists) {
+            await users.insertOne({
+                "userId": user,
+                "authenticators": [newAuthenticator],
+                "currentChallenge": ""
+            });
+
+            return;
+        }
+
+        const exists = await users.findOne({
+            $and: [
+                { "userId": user },
+                {
+                    "authenticators": {
+                        '$elemMatch': {
+                            "credentialID": newAuthenticator.credentialID
+                        }
+                    }
+                }
+            ]
+        });
+        if (exists) {
+            throw new Error('User already exists');
+        } else {
+            await users.insertOne(newAuthenticator);
+        }
+    } catch (error) {
+        console.log("Error adding user:", error);
+    }
+    finally {
+        await client.close();
+    }
 }
 
 async function getRegistrationOptions(req, res) {
-    const user = getUserFromDB(loggedInUserId);
-    const userAuthenticators = getUserAuthenticators(user);
+    const user = await getUserFromDB(loggedInUserId);
+    const userAuthenticators = await getUserAuthenticators(user);
 
     const options = await generateRegistrationOptions({
         rpName,
         rpID,
-        userID: user.id,
-        userName: user.username,
+        userID: user._id,
+        userName: user.email,
         attestationType: 'none',
         // Prevent users from re-registering existing authenticators
         excludeCredentials: userAuthenticators.map(authenticator => ({
             id: authenticator.credentialID,
             type: 'public-key',
-            // transports: authenticator.transports,
+            transports: authenticator.transports,
         })),
         authenticatorSelection: {
             residentKey: 'preferred',
@@ -56,17 +162,15 @@ async function getRegistrationOptions(req, res) {
         },
     });
 
-    // (Pseudocode) Remember the challenge for this user
-    setUserCurrentChallenge(user, options.challenge); // TODO
-
+    await setUserCurrentChallenge(user, options.challenge);
     res.status(200).json(options);
 }
 
 async function verifyAndSaveRegistration(req, res) {
     const { body } = req;
 
-    const user = getUserFromDB(loggedInUserId);
-    const expectedChallenge = getUserCurrentChallenge(user);
+    const user = await getUserFromDB(loggedInUserId);
+    const expectedChallenge = await getUserCurrentChallenge(user);
 
     let verification;
     try {
@@ -102,15 +206,15 @@ async function verifyAndSaveRegistration(req, res) {
             transports,
         };
 
-        saveNewUserAuthenticatorInDB(user, newAuthenticator);
+       await saveNewUserAuthenticatorInDB(user, newAuthenticator);
     }
 
     res.status(200).json({ verified });
 }
 
 async function getAuthenticationOptions(req, res) {
-    const user = getUserFromDB(loggedInUserId); // TODO
-    const userAuthenticators  = getUserAuthenticators(user);
+    const user = await getUserFromDB(loggedInUserId); // TODO
+    const userAuthenticators = await getUserAuthenticators(user);
 
     const options = await generateAuthenticationOptions({
         rpID,
@@ -130,7 +234,7 @@ async function getAuthenticationOptions(req, res) {
 async function verifyAuthentication(req, res) {
     const { body } = req;
 
-    const user = getUserFromDB(loggedInUserId);
+    const user = await getUserFromDB(loggedInUserId);
     const expectedChallenge = getUserCurrentChallenge(user);
     const authenticator = getUserAuthenticator(user, body.id);
 
