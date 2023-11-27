@@ -27,12 +27,12 @@ async function getUserFromDB(loggedInUserID) {
     return await FindUserByID(loggedInUserID);
 }
 
-async function getUserAuthenticators(user) {
+async function getUserAuthenticators(userId) {
     try {
         const db = client.db('geodb');
         const users = db.collection('multifactor');
 
-        const user = await users.findOne({ "userId": user })
+        const user = await users.findOne({ "userId": userId })
         if (!user) {
             return [];
         } else {
@@ -79,12 +79,12 @@ async function setUserCurrentChallenge(user, challenge) {
     }
 }
 
-async function getUserCurrentChallenge(user) {
+async function getUserCurrentChallenge(userId) {
     try {
         const db = client.db('geodb');
         const users = db.collection('multifactor');
 
-        const user = await users.findOne({ "userId": user })
+        const user = await users.findOne({ "userId": userId })
         if (!user) {
             return null;
         } else {
@@ -140,7 +140,7 @@ async function saveNewUserAuthenticatorInDB(user, newAuthenticator) {
 }
 
 async function getRegistrationOptions(req, res) {
-    const user = await getUserFromDB(loggedInUserId);
+    const user = await getUserFromDB(req.body.id);
     const userAuthenticators = await getUserAuthenticators(user);
 
     const options = await generateRegistrationOptions({
@@ -169,7 +169,7 @@ async function getRegistrationOptions(req, res) {
 async function verifyAndSaveRegistration(req, res) {
     const { body } = req;
 
-    const user = await getUserFromDB(loggedInUserId);
+    const user = await getUserFromDB(body.id);
     const expectedChallenge = await getUserCurrentChallenge(user);
 
     let verification;
@@ -213,7 +213,7 @@ async function verifyAndSaveRegistration(req, res) {
 }
 
 async function getAuthenticationOptions(req, res) {
-    const user = await getUserFromDB(loggedInUserId); // TODO
+    const user = await getUserFromDB(req.body.id);
     const userAuthenticators = await getUserAuthenticators(user);
 
     const options = await generateAuthenticationOptions({
@@ -234,9 +234,9 @@ async function getAuthenticationOptions(req, res) {
 async function verifyAuthentication(req, res) {
     const { body } = req;
 
-    const user = await getUserFromDB(loggedInUserId);
-    const expectedChallenge = getUserCurrentChallenge(user);
-    const authenticator = getUserAuthenticator(user, body.id);
+    const user = await getUserFromDB(body.id);
+    const expectedChallenge = await getUserCurrentChallenge(user);
+    const authenticator = await getUserAuthenticator(user, body.id);
 
     if (!authenticator) {
         throw new Error(`Could not find authenticator ${body.id} for user ${user.id}`);
