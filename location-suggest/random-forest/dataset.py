@@ -26,7 +26,7 @@ def make_graphql_request(gql_dir: str = GQL_DIR, query_filename: str = "users.gr
     with open(os.path.join(gql_dir, query_filename)) as gql_query:
         query = gql_query.read()
         gql_query.close()
-    result = requests.post("http://localhost:5000/api", json={'query': query , 'variables': variables}).json()
+    result = requests.post("http://localhost:80/api", json={'query': query , 'variables': variables}).json()
     for key in result['data']:
         if result['data'][key] == "Failure!":
             raise Exception("GraphQL query returned \"Failure!\"")

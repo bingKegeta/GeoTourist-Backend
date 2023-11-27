@@ -154,4 +154,4 @@ app.get('/2fa/generate-registration-options', getRegistrationOptions)
 app.post('/2fa/verify-registration', verifyAndSaveRegistration)
 app.post('/2fa/verify-authentication', verifyAuthentication)
 
-app.listen(5000, () => console.log('Server Running'));
+app.listen(80, () => console.log('Server Running'));

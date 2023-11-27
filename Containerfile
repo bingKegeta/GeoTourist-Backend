@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r ./location-suggest/random-forest/setup/require
 RUN npm i
 
 CMD ["node", "src/server.js"]
-EXPOSE 5000
+EXPOSE 80
