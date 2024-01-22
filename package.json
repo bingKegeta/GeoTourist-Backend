@@ -5,7 +5,8 @@
   "main": "src/server.js",
   "type": "module",
   "scripts": {
-    "devStart": "nodemon src/server.js"
+    "devStart": "nodemon src/server.js",
+    "start": "node src/server.js"
   },
   "author": "",
   "license": "ISC",
